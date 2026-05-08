@@ -37,7 +37,89 @@ def F(J, x):
     return np.dot(J, np.tanh(x)) - x
 
 
-def run_trial(T, x_0 = None, W_0=None,  N=1500, g_0=10, b_alpha=100, m_b =0, sparsity=0.2, g_w=10, target=0, D=1e-3, eps=3, mu=0.01, M_0=4, t_int=0, t_max=2000, dt=0.1, T_stop=100, tol=1e-2):
+def run_trial(T, x_0 = None, W_0=None, out_dim=1,  N=1500, g_0=10, b_alpha=100, m_b =0, sparsity=0.2, g_w=10, target=0, D=1e-3, eps=3, mu=0.01, M_0=4, t_int=0, t_max=2000, dt=0.1, T_stop=100, tol=1e-2):
+    """
+    run dynamics for a given ensemble 
+  
+    Parameters:
+    T: NXN adjacency matrix for a predefined ensemble
+    N: network size
+    g_0: matrix gain for the vector b initialization
+    b_alpha: parameter determining the scale of phenotype fluctuations
+    m_b: mean of b[i]
+    sparsity (c): fraction of non-zero elements in b
+    g_w:matrix gain for J initilization
+    target: y*
+    D: The amplitude of the random walk
+    eps,mu,M_0: parameters for the Mismatch function
+    t_int: initial time for the simluation
+    dt: the step-size for the dynamics
+    t_max: if network does not converge end simulation at t=t_max
+    T_stop: if network output y~y* for T_stop time units, then network converged.
+    tol: Ms(|y-y*|)< tol is regarded as success to converge
+
+    Returns:
+    is_success: 1 if converged, 0 otherwise.
+  
+    """
+    
+    
+    # initialize b
+    b1 = init_b(N=N, alpha=b_alpha, g_0=g_0,m_b=m_b)
+    b2 = init_b(N=N, alpha=b_alpha, g_0=g_0,m_b=m_b)
+
+    
+    
+    # initialize J
+    if W_0 is not None:
+        W_rec = W_0
+    else:
+        W_rec = init_J(T,g_0)
+        
+        
+
+    
+    #active indicies (used for updating weights)
+    N_W_n_z = np.sum(T)
+    active_idxs = np.where(T!=0)
+    
+    # trial params
+    T_sim = round(t_max/dt)+1;
+
+    s = np.zeros((T_sim,)) #Will hold stress at all timesteps (not essensial)
+    M_s = np.zeros((T_sim,)) #Will hold mismatch function at all timesteps - useful for stopping creterion
+    is_sucess = 0 #will be set to 1 in case the network converges
+    
+    
+    # initialize x
+    X = np.zeros((T_sim,N))
+    if x_0 is not None:
+        X[0] = x_0
+    else:
+        X[0] = 10 *np.random.randn(N)
+        
+    #run trial
+    for i in range(T_sim-1):
+        # calculate mismatch
+        s[i] = stress(b, X[i], target=0)
+        M_s[i] = Mismatch(s[i], M_0, mu, eps)
+        
+        #run dynamics
+        X[i+1] = X[i] + dt*F(W_rec,X[i])#(np.dot(W_rec,np.tanh(X[i])) - X[i])
+        
+        # update weights - EA
+        delta = np.sqrt(M_s[i]*dt*D)*np.random.randn(N_W_n_z,)
+        W_rec[active_idxs] = W_rec[active_idxs] + delta
+        
+        #stopping creterion:
+        if i*dt> T_stop:
+            if ~np.any(M_s[i-int((T_stop/dt)):i] > tol):
+                is_sucess = 1
+                break
+    
+    return is_sucess, X, i+1
+
+def run_trial_wp(T, x_0 = None, W_0=None,  N=1500, g_0=10, b_alpha=100, m_b =0, sparsity=0.2, g_w=10, target=0, D=1e-3, eps=3, mu=0.01, M_0=4, t_int=0, t_max=2000, dt=0.1, T_stop=100, tol=1e-2,full = False):
     """
     run dynamics for a given ensemble 
   
@@ -96,17 +178,29 @@ def run_trial(T, x_0 = None, W_0=None,  N=1500, g_0=10, b_alpha=100, m_b =0, spa
     else:
         X[0] = 10 *np.random.randn(N)
         
+    s[0] = stress(b, X[0], target=0)
+    M_s[0] = Mismatch(s[0], M_0, mu, eps)
     #run trial
-    for i in range(T_sim-1):
-        # calculate mismatch
-        s[i] = stress(b, X[i], target=0)
+    for i in range(1,T_sim-1):
+        #run dynamics
+        X[i] = X[i-1] + dt*F(W_rec,X[i-1])#(np.dot(W_rec,np.tanh(X[i])) - X[i])
+        W_rec_hat = W_rec.copy()
+        eta = np.random.randn(N_W_n_z,)
+        W_rec_hat[active_idxs] = W_rec_hat[active_idxs] + eta
+        
+        x_h = X[i-1] + dt*F(W_rec_hat,X[i-1])
+        # update weights - EA
+        s[i]=stress(b, X[i], target=0)
         M_s[i] = Mismatch(s[i], M_0, mu, eps)
         
-        #run dynamics
-        X[i+1] = X[i] + dt*F(W_rec,X[i])#(np.dot(W_rec,np.tanh(X[i])) - X[i])
+        s_hat = stress(b, x_h, target=0)
+        M_s_h = Mismatch(s_hat, M_0, mu, eps)
         
-        # update weights - EA
-        delta = np.sqrt(M_s[i]*dt*D)*np.random.randn(N_W_n_z,)
+        direction= ((M_s_h - M_s[i]) < 0)*2 - 1
+        if full:
+            delta = direction *np.sqrt(np.abs(M_s_h - M_s[i])*dt*D)*eta
+        else:
+            delta = direction *np.sqrt(M_s[i]*dt*D)*eta
         W_rec[active_idxs] = W_rec[active_idxs] + delta
         
         #stopping creterion:
@@ -116,3 +210,215 @@ def run_trial(T, x_0 = None, W_0=None,  N=1500, g_0=10, b_alpha=100, m_b =0, spa
                 break
     
     return is_sucess, X, i+1
+
+def run_trial_ea(T, x_0 = None, W_0=None,  N=1500, g_0=10, b_alpha=100, m_b =0, sparsity=0.2, g_w=10, target=0, D=1e-3, eps=3, mu=0.01, M_0=4, t_int=0, t_max=2000, dt=0.1, T_stop=100, tol=1e-2):
+    """
+    run dynamics for a given ensemble 
+  
+    Parameters:
+    T: NXN adjacency matrix for a predefined ensemble
+    N: network size
+    g_0: matrix gain for the vector b initialization
+    b_alpha: parameter determining the scale of phenotype fluctuations
+    m_b: mean of b[i]
+    sparsity (c): fraction of non-zero elements in b
+    g_w:matrix gain for J initilization
+    target: y*
+    D: The amplitude of the random walk
+    eps,mu,M_0: parameters for the Mismatch function
+    t_int: initial time for the simluation
+    dt: the step-size for the dynamics
+    t_max: if network does not converge end simulation at t=t_max
+    T_stop: if network output y~y* for T_stop time units, then network converged.
+    tol: Ms(|y-y*|)< tol is regarded as success to converge
+
+    Returns:
+    is_success: 1 if converged, 0 otherwise.
+  
+    """
+    
+    
+    # initialize b
+    b = init_b(N=N, alpha=b_alpha, g_0=g_0,m_b=m_b)
+    
+    
+    # initialize J
+    if W_0 is not None:
+        W_rec = W_0
+    else:
+        W_rec = init_J(T,g_0)
+        
+        
+
+    
+    #active indicies (used for updating weights)
+    N_W_n_z = np.sum(T)
+    active_idxs = np.where(T!=0)
+    
+    # trial params
+    T_sim = round(t_max/dt)+1;
+
+    s = np.zeros((T_sim,)) #Will hold stress at all timesteps (not essensial)
+    M_s = np.zeros((T_sim,)) #Will hold mismatch function at all timesteps - useful for stopping creterion
+    is_sucess = 0 #will be set to 1 in case the network converges
+    
+    
+    # initialize x
+    X = np.zeros((T_sim,N))
+    if x_0 is not None:
+        X[0] = x_0
+    else:
+        X[0] = 10 *np.random.randn(N)
+        
+    s[0] = stress(b, X[0], target=0)
+    M_s[0] = Mismatch(s[0], M_0, mu, eps)
+    #run trial
+    for i in range(1,T_sim-1):
+        #run dynamics
+        X[i] = X[i-1] + dt*F(W_rec,X[i-1])#(np.dot(W_rec,np.tanh(X[i])) - X[i])
+        #W_rec_hat = W_rec.copy()
+        eta = np.random.randn(N_W_n_z,)
+        #W_rec_hat[active_idxs] = W_rec_hat[active_idxs] + eta
+        
+        #x_h = X[i-1] + dt*F(W_rec_hat,X[i-1])
+        # update weights - EA
+        s[i]=stress(b, X[i], target=0)
+        M_s[i] = Mismatch(s[i], M_0, mu, eps)
+    
+        #direction= ((M_s_h - M_s[i]) >= 0)*2 - 1 
+        delta = np.sqrt(M_s[i]*dt*D)*eta
+        W_rec[active_idxs] = W_rec[active_idxs] + delta
+        
+        #stopping creterion:
+        if i*dt> T_stop:
+            if ~np.any(M_s[i-int((T_stop/dt)):i] > tol):
+                is_sucess = 1
+                break
+    
+    return is_sucess, X, i+1
+
+
+def run_trial_mf(T, x_0 = None, W_0=None,  N=1500, g_0=10, b_alpha=100, m_b =0, sparsity=0.2, g_w=10, target=0, D=1e-3, eps=3, mu=0.01, M_0=4, t_int=0, t_max=2000, dt=0.1, T_stop=100, tol=1e-2):
+    """
+    run dynamics for a given ensemble 
+  
+    Parameters:
+    T: NXN adjacency matrix for a predefined ensemble
+    N: network size
+    g_0: matrix gain for the vector b initialization
+    b_alpha: parameter determining the scale of phenotype fluctuations
+    m_b: mean of b[i]
+    sparsity (c): fraction of non-zero elements in b
+    g_w:matrix gain for J initilization
+    target: y*
+    D: The amplitude of the random walk
+    eps,mu,M_0: parameters for the Mismatch function
+    t_int: initial time for the simluation
+    dt: the step-size for the dynamics
+    t_max: if network does not converge end simulation at t=t_max
+    T_stop: if network output y~y* for T_stop time units, then network converged.
+    tol: Ms(|y-y*|)< tol is regarded as success to converge
+
+    Returns:
+    is_success: 1 if converged, 0 otherwise.
+  
+    """
+    
+    
+    # initialize b
+    b = init_b(N=N, alpha=b_alpha, g_0=g_0,m_b=m_b)
+    
+    
+    # initialize J
+    if W_0 is not None:
+        W_rec = W_0
+    else:
+        W_rec = init_J(T,g_0)
+        
+        
+
+    
+    #active indicies (used for updating weights)
+    N_W_n_z = np.sum(T)
+    active_idxs = np.where(T!=0)
+    
+    # trial params
+    T_sim = round(t_max/dt)+1;
+
+    s = np.zeros((T_sim,)) #Will hold stress at all timesteps (not essensial)
+    M_s = np.zeros((T_sim,)) #Will hold mismatch function at all timesteps - useful for stopping creterion
+    is_sucess = 0 #will be set to 1 in case the network converges
+    
+    
+    # initialize x
+    X = np.zeros((T_sim,N))
+    if x_0 is not None:
+        X[0] = x_0
+    else:
+        X[0] = 10 *np.random.randn(N)
+        
+    s[0] = stress(b, X[0], target=0)
+    M_s[0] = Mismatch(s[0], M_0, mu, eps)
+    #run trial
+    for i in range(1,T_sim-1):
+        #run dynamics
+        X[i] = X[i-1] + dt*F(W_rec,X[i-1])#(np.dot(W_rec,np.tanh(X[i])) - X[i])
+        W_rec_hat = W_rec.copy()
+        eta = np.random.randn(N_W_n_z,)
+        W_rec_hat[active_idxs] = W_rec_hat[active_idxs] + eta
+        
+        x_h = X[i-1] + dt*F(W_rec_hat,X[i-1])
+        # update weights - EA
+        s[i]=stress(b, X[i], target=0)
+        M_s[i] = Mismatch(s[i], M_0, mu, eps)
+        
+        s_hat = stress(b, x_h, target=0)
+        M_s_h = Mismatch(s_hat, M_0, mu, eps)
+        
+        direction= ((M_s_h - M_s[i]) < 0)*2 - 1 
+        delta = np.sqrt(M_s_h*dt*D)*eta
+        W_rec[active_idxs] = W_rec[active_idxs] + delta
+        
+        #stopping creterion:
+        if i*dt> T_stop:
+            if ~np.any(M_s[i-int((T_stop/dt)):i] > tol):
+                is_sucess = 1
+                break
+    
+    return is_sucess, X, i+1
+
+def update_weights(W_rec, active_idxs, eta, M_s, D, dt, M_s_next=None, rule='EA'):
+    if rule == 'EA':
+        delta = np.sqrt(M_s*dt*D)*eta
+    elif M_s_next is None:
+        raise ValueError('M_s_next must be provided')
+    if rule == 'MF':
+        delta = np.sqrt(M_s_next*dt*D)*eta
+    elif rule == 'biasedEA':
+        direction= ((M_s_next - M_s) < 0)*2 - 1
+        delta = direction * np.sqrt(M_s*dt*D)*eta
+    elif rule == 'WeightPertubation':
+        direction= ((M_s_next - M_s) < 0)*2 - 1
+        delta = direction * np.sqrt(np.abs(M_s_next - M_s)*dt*D)*eta
+    elif rule == 'SimulatedAnnealing':
+        direction= M_s_next - M_s
+        if direction < 0:
+            delta = np.sqrt(M_s*dt*D)*eta
+        else:
+            p_accept = np.exp(-direction)
+            if np.random.rand() < p_accept:
+                delta = np.sqrt(M_s*dt*D)*eta
+            else:
+                delta = 0
+    W_rec[active_idxs] = W_rec[active_idxs] + delta
+    return W_rec
+
+
+    # 
+    obj_function = lambda x:  Mismatch(x,D=1e-3, eps=3, mu=0.01, M_0=4)
+    x_0 = 0.1
+    print(obj_function(x_0))
+
+
+
+    def run_trial(T, x_0 = None, W_0=None, out_dim=1,  N=1500, g_0=10, b_alpha=100, m_b =0, sparsity=0.2, g_w=10, target=0, D=1e-3, eps=3, mu=0.01, M_0=4, t_int=0, t_max=2000, dt=0.1, T_stop=100, tol=1e-2):
