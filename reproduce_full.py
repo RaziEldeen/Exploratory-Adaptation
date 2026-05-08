@@ -3,9 +3,15 @@
 Runs the full 3x3 (out_dist, in_dist) grid via numpy-only directed
 configuration model. Parallelized across trials.
 """
+import os
+# Force single-threaded BLAS so the multiprocessing Pool doesn't
+# oversubscribe 4 workers x N BLAS threads.
+for _v in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS",
+           "MKL_NUM_THREADS", "BLIS_NUM_THREADS"):
+    os.environ.setdefault(_v, "1")
+
 import itertools
 import json
-import os
 import time
 from multiprocessing import Pool
 
@@ -69,7 +75,7 @@ def one_trial(args):
 
 def main():
     N = 1500
-    n_trials = 20
+    n_trials = 10
     t_max = 2000
 
     dists = ["sf", "binom", "exp"]
