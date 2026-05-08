@@ -1,13 +1,16 @@
-"""Fast reproduction using JAX (lax.scan + jit) and the real graph_tool
-random_graph generator. Single JIT compile for all topologies.
+"""Fast JAX reproduction. The slow version sampled (N,N) noise per
+step (2.25M values, mostly masked away). This version samples noise only
+on active edges (~5k) using padded indices for static shape, so a single
+jit compiles once and serves every topology.
 
-Run with the system python3.12 (graph_tool is installed via apt):
+Run with the system python3.12 (graph_tool comes from apt):
     /usr/bin/python3.12 reproduce_jax_gt.py
 """
 import itertools
 import json
 import os
 import time
+from functools import partial
 
 for _v in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS",
            "MKL_NUM_THREADS", "BLIS_NUM_THREADS"):
@@ -18,7 +21,6 @@ from scipy.stats import genpareto
 import jax
 import jax.numpy as jnp
 from jax import jit, lax, random
-from functools import partial
 
 from graph_tool.generation import random_graph
 from graph_tool.spectral import adjacency
@@ -36,8 +38,10 @@ D_NOISE = 1e-3
 G0 = 10.0
 B_ALPHA = 100.0
 SPARSITY = 0.2
-CHUNK = 200       # steps per scan chunk
+CHUNK = 200
 N_CHUNKS = int(round(T_MAX / DT)) // CHUNK   # 100
+
+MAX_EDGES = 30_000  # padding upper bound for active-edge index arrays
 
 
 def degree_rv(dist):
@@ -59,13 +63,27 @@ def gt_topology(in_dist, out_dist):
         directed=True,
         verbose=False,
     )
-    T = np.array(adjacency(g).todense()).astype(np.float32)
-    return T
+    return np.array(adjacency(g).todense()).astype(np.float32)
 
 
-@partial(jit, static_argnames=("chunk", "n_chunks"))
-def trial_jax(key, T, chunk=CHUNK, n_chunks=N_CHUNKS):
-    """One full EA trial. Returns Ms[t] (length n_chunks*chunk)."""
+def pad_active_indices(T):
+    """Return (rows, cols, valid_mask, avg_k) padded to MAX_EDGES."""
+    rows, cols = np.where(T != 0)
+    n = len(rows)
+    if n > MAX_EDGES:
+        raise RuntimeError(f"topology has {n} edges, exceeds MAX_EDGES={MAX_EDGES}")
+    pad = MAX_EDGES - n
+    rows_p = np.concatenate([rows, np.zeros(pad, dtype=rows.dtype)]).astype(np.int32)
+    cols_p = np.concatenate([cols, np.zeros(pad, dtype=cols.dtype)]).astype(np.int32)
+    valid = np.concatenate([np.ones(n), np.zeros(pad)]).astype(np.float32)
+    avg_k = float(T.sum(1).mean())
+    return rows_p, cols_p, valid, avg_k
+
+
+@partial(jit, static_argnames=("chunk", "n_chunks", "max_edges"))
+def trial_jax(key, T_mask, rows, cols, valid, avg_k,
+              chunk=CHUNK, n_chunks=N_CHUNKS, max_edges=MAX_EDGES):
+    """One EA trial, returns full Ms[t] sequence."""
     kb, kW, kx, kn = random.split(key, 4)
 
     cN = int(round(N * SPARSITY))
@@ -73,9 +91,7 @@ def trial_jax(key, T, chunk=CHUNK, n_chunks=N_CHUNKS):
     g_b = (1.0 / G0) * jnp.sqrt(B_ALPHA / cN)
     b = jnp.zeros((N,)).at[idxs].set(g_b * random.normal(kb, (cN,)))
 
-    avg_k = T.sum(1).mean()
-    W0 = ((G0 / jnp.sqrt(avg_k)) * random.normal(kW, T.shape)) * T
-
+    W0 = ((G0 / jnp.sqrt(avg_k)) * random.normal(kW, T_mask.shape)) * T_mask
     x0 = 10.0 * random.normal(kx, (N,))
 
     def body(carry, key_chunk):
@@ -86,8 +102,9 @@ def trial_jax(key, T, chunk=CHUNK, n_chunks=N_CHUNKS):
             s = jnp.abs(jnp.dot(b, x))
             Ms = (M0 / 2.0) * (1.0 + jnp.tanh((s - EPS) / MU))
             x_next = x + DT * (jnp.dot(W, jnp.tanh(x)) - x)
-            eta = random.normal(k_step, T.shape)
-            W_next = W + jnp.sqrt(Ms * DT * D_NOISE) * eta * T
+            # Sparse noise on active edges only (padded slots get masked off).
+            noise = random.normal(k_step, (max_edges,)) * valid
+            W_next = W.at[rows, cols].add(jnp.sqrt(Ms * DT * D_NOISE) * noise)
             return (x_next, W_next), Ms
 
         keys = random.split(key_chunk, chunk)
@@ -118,15 +135,20 @@ def main():
     dists = ["sf", "binom", "exp"]
     combos = list(itertools.product(dists, dists))
 
-    print(f"[JAX+graph_tool]  N={N}, n_trials={n_trials}, t_max={T_MAX}, "
-          f"chunk={CHUNK}, n_chunks={N_CHUNKS}")
+    print(f"[JAX-sparse + graph_tool]  N={N}, n_trials={n_trials}, t_max={T_MAX}, "
+          f"chunk={CHUNK}, n_chunks={N_CHUNKS}, max_edges={MAX_EDGES}")
 
-    # Warm up JIT once with a dummy topology (binom diagonal as baseline).
     print("compiling JIT...", flush=True)
     t_compile = time.time()
     T_dummy = gt_topology("binom", "binom")
-    _ = trial_jax(random.PRNGKey(99), jnp.asarray(T_dummy)).block_until_ready()
-    print(f"  compiled in {time.time()-t_compile:.1f}s")
+    rows_d, cols_d, valid_d, avg_k_d = pad_active_indices(T_dummy)
+    _ = trial_jax(
+        random.PRNGKey(99),
+        jnp.asarray(T_dummy),
+        jnp.asarray(rows_d), jnp.asarray(cols_d),
+        jnp.asarray(valid_d), avg_k_d,
+    ).block_until_ready()
+    print(f"  compiled in {time.time() - t_compile:.1f}s", flush=True)
 
     t0 = time.time()
     CF = {}
@@ -134,13 +156,19 @@ def main():
     for out_d, in_d in combos:
         succ = 0
         max_ins, max_outs = [], []
+        cell_t0 = time.time()
         for _ in range(n_trials):
             T = gt_topology(in_d, out_d)
             max_ins.append(int(T.sum(1).max()))
             max_outs.append(int(T.sum(0).max()))
-            T_jax = jnp.asarray(T)
+            rows, cols, valid, avg_k = pad_active_indices(T)
             key, sub = random.split(key)
-            Ms = trial_jax(sub, T_jax)
+            Ms = trial_jax(
+                sub,
+                jnp.asarray(T),
+                jnp.asarray(rows), jnp.asarray(cols),
+                jnp.asarray(valid), avg_k,
+            )
             Ms.block_until_ready()
             if converged(Ms):
                 succ += 1
@@ -148,19 +176,23 @@ def main():
         max_in_avg[(out_d, in_d)] = float(np.mean(max_ins))
         max_out_avg[(out_d, in_d)] = float(np.mean(max_outs))
         elapsed = time.time() - t0
-        print(f"  {out_d:>5} {in_d:>5}  CF={CF[(out_d, in_d)]:.2f}  "
-              f"max_in={max_in_avg[(out_d, in_d)]:.0f}  "
-              f"max_out={max_out_avg[(out_d, in_d)]:.0f}  "
-              f"(elapsed {elapsed:.0f}s)")
+        cell_dt = time.time() - cell_t0
+        print(
+            f"  {out_d:>5} {in_d:>5}  CF={CF[(out_d, in_d)]:.2f}  "
+            f"max_in={max_in_avg[(out_d, in_d)]:.0f}  "
+            f"max_out={max_out_avg[(out_d, in_d)]:.0f}  "
+            f"(cell {cell_dt:.0f}s, total {elapsed:.0f}s)",
+            flush=True,
+        )
 
     print(f"\nTotal trial time: {time.time() - t0:.1f}s\n")
     print("CF table (rows=out_dist, cols=in_dist):")
     print("        " + " ".join(f"{d:>7}" for d in dists))
     for out_d in dists:
-        row = f"{out_d:>6}: " + " ".join(
-            f"{CF[(out_d, in_d)]:>7.2f}" for in_d in dists
+        print(
+            f"{out_d:>6}: "
+            + " ".join(f"{CF[(out_d, in_d)]:>7.2f}" for in_d in dists)
         )
-        print(row)
 
     original = {
         ("sf", "sf"): 0.65, ("sf", "binom"): 0.64, ("sf", "exp"): 0.85,
