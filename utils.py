@@ -29,7 +29,7 @@ def init_J(T, g_0=10):
     N_W_n_z = np.sum(T) # number of active connections
     avg_k = np.sum(T,1).mean() # average connectivity <K>
     
-    W_int = np.zeros_like(T,dtype=np.float)
+    W_int = np.zeros_like(T,dtype=float)
     W_int[active_idxs] = (g_0/np.sqrt(avg_k))*np.random.randn(N_W_n_z,)
     return W_int
 
