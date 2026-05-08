@@ -1,0 +1,14 @@
+# Pure-Python deps installable via pip:
+numpy>=1.26
+scipy>=1.10
+jax>=0.4.30,<0.5
+jaxlib>=0.4.30,<0.5
+matplotlib>=3.6
+tqdm>=4.60
+jupyter>=1.0
+pandas>=1.5
+
+# graph-tool is NOT on PyPI. Install via your system package manager:
+#   Debian/Ubuntu:  apt-get install python3-graph-tool
+#   conda-forge:    conda install -c conda-forge graph-tool
+# See: https://graph-tool.skewed.de/installation.html
