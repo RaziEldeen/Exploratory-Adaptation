@@ -1,0 +1,51 @@
+== E1: hub variants vs sigma (alpha=0.5) ==
+[   3.2s] E1 er                              CF=0.07 fp=0.01 P(fp)=0.05 lyap=+0.15 frozen= 89.5 alive=nan CF|fp=1.00 CF|nofp=0.03 P(ord)=0.10 CF|ord=0.75 CF|chaos=0.00
+[   5.3s] E1 hub s=2                         CF=0.10 fp=0.01 P(fp)=0.07 lyap=+0.15 frozen= 89.0 alive=0.23 CF|fp=0.67 CF|nofp=0.05 P(ord)=0.10 CF|ord=0.75 CF|chaos=0.03
+[   7.5s] E1 hub s=5                         CF=0.10 fp=0.01 P(fp)=0.03 lyap=+0.11 frozen= 88.8 alive=0.10 CF|fp=1.00 CF|nofp=0.08 P(ord)=0.17 CF|ord=0.57 CF|chaos=0.00
+[   9.8s] E1 hub s=10                        CF=0.15 fp=0.01 P(fp)=0.10 lyap=+0.07 frozen= 90.8 alive=0.28 CF|fp=0.75 CF|nofp=0.08 P(ord)=0.23 CF|ord=0.67 CF|chaos=0.00
+[  12.0s] E1 hub s=20                        CF=0.12 fp=0.03 P(fp)=0.07 lyap=+0.01 frozen= 91.4 alive=0.33 CF|fp=1.00 CF|nofp=0.05 P(ord)=0.33 CF|ord=0.38 CF|chaos=0.00
+[  14.1s] E1 hub s=40                        CF=0.23 fp=0.02 P(fp)=0.05 lyap=-0.06 frozen= 94.4 alive=0.45 CF|fp=1.00 CF|nofp=0.18 P(ord)=0.38 CF|ord=0.53 CF|chaos=0.04
+[  16.3s] E1 hub_forced s=2                  CF=0.05 fp=0.02 P(fp)=0.10 lyap=+0.07 frozen= 92.4 alive=1.00 CF|fp=0.50 CF|nofp=0.00 P(ord)=0.20 CF|ord=0.25 CF|chaos=0.00
+[  18.3s] E1 hub_forced s=5                  CF=0.33 fp=0.07 P(fp)=0.25 lyap=-0.08 frozen= 94.2 alive=1.00 CF|fp=1.00 CF|nofp=0.10 P(ord)=0.45 CF|ord=0.72 CF|chaos=0.00
+[  20.4s] E1 hub_forced s=10                 CF=0.33 fp=0.09 P(fp)=0.25 lyap=-0.12 frozen= 95.1 alive=0.97 CF|fp=1.00 CF|nofp=0.10 P(ord)=0.45 CF|ord=0.61 CF|chaos=0.09
+[  22.5s] E1 hub_forced s=20                 CF=0.35 fp=0.12 P(fp)=0.33 lyap=-0.31 frozen= 99.9 alive=0.97 CF|fp=0.85 CF|nofp=0.11 P(ord)=0.75 CF|ord=0.40 CF|chaos=0.20
+[  24.9s] E1 hub_forced s=40                 CF=0.10 fp=0.02 P(fp)=0.07 lyap=-0.39 frozen=103.2 alive=1.00 CF|fp=0.67 CF|nofp=0.05 P(ord)=0.90 CF|ord=0.08 CF|chaos=0.25
+[  27.2s] E1 hub_clamped s=2                 CF=0.00 fp=0.00 P(fp)=0.00 lyap=+0.13 frozen= 89.5 alive=1.00 CF|fp=nan CF|nofp=0.00 P(ord)=0.10 CF|ord=0.00 CF|chaos=0.00
+[  29.3s] E1 hub_clamped s=5                 CF=0.25 fp=0.03 P(fp)=0.07 lyap=+0.06 frozen= 92.8 alive=1.00 CF|fp=1.00 CF|nofp=0.19 P(ord)=0.28 CF|ord=0.73 CF|chaos=0.07
+[  31.3s] E1 hub_clamped s=10                CF=0.33 fp=0.06 P(fp)=0.17 lyap=+0.02 frozen= 94.5 alive=1.00 CF|fp=1.00 CF|nofp=0.18 P(ord)=0.38 CF|ord=0.53 CF|chaos=0.20
+[  33.4s] E1 hub_clamped s=20                CF=0.30 fp=0.06 P(fp)=0.20 lyap=+0.01 frozen= 98.2 alive=1.00 CF|fp=0.88 CF|nofp=0.16 P(ord)=0.42 CF|ord=0.47 CF|chaos=0.17
+[  35.5s] E1 hub_clamped s=40                CF=0.25 fp=0.12 P(fp)=0.25 lyap=-0.01 frozen=101.7 alive=1.00 CF|fp=1.00 CF|nofp=0.00 P(ord)=0.57 CF|ord=0.30 CF|chaos=0.18
+[  37.7s] E1 hub_clamped s=20 a=0.25         CF=0.28 fp=0.02 P(fp)=0.12 lyap=+0.02 frozen= 94.9 alive=1.00 CF|fp=1.00 CF|nofp=0.17 P(ord)=0.33 CF|ord=0.46 CF|chaos=0.19
+[  40.1s] E1 hub_clamped s=20 a=1.0          CF=0.15 fp=0.08 P(fp)=0.12 lyap=+0.00 frozen=105.2 alive=1.00 CF|fp=1.00 CF|nofp=0.03 P(ord)=0.47 CF|ord=0.11 CF|chaos=0.19
+== E3: learning restricted to subspaces (hub_clamped, sigma=20) ==
+[  42.1s] E3 all                             CF=0.33 fp=0.12 P(fp)=0.23 lyap=+0.00 frozen= 97.7 alive=1.00 CF|fp=1.00 CF|nofp=0.13 P(ord)=0.47 CF|ord=0.47 CF|chaos=0.19
+[  43.6s] E3 hub_only                        CF=0.15 fp=0.07 P(fp)=0.10 lyap=+0.01 frozen= 96.5 alive=1.00 CF|fp=1.00 CF|nofp=0.06 P(ord)=0.35 CF|ord=0.21 CF|chaos=0.12
+[  45.6s] E3 bulk_only                       CF=0.47 fp=0.09 P(fp)=0.28 lyap=-0.01 frozen= 97.6 alive=1.00 CF|fp=0.91 CF|nofp=0.31 P(ord)=0.60 CF|ord=0.62 CF|chaos=0.25
+[  46.8s] E3 none                            CF=0.10 fp=0.32 P(fp)=0.38 lyap=+0.00 frozen= 97.9 alive=1.00 CF|fp=0.20 CF|nofp=0.04 P(ord)=0.30 CF|ord=0.17 CF|chaos=0.07
+[  47.9s] E3 er none                         CF=0.03 fp=0.00 P(fp)=0.03 lyap=+0.16 frozen= 89.4 alive=nan CF|fp=0.00 CF|nofp=0.03 P(ord)=0.10 CF|ord=0.25 CF|chaos=0.00
+== E7: hub-only learning with noise scaled to the hub weight scale ==
+[  49.5s] E7 hub_only scaled s=5             CF=0.17 fp=0.03 P(fp)=0.10 lyap=+0.07 frozen= 90.5 alive=1.00 CF|fp=1.00 CF|nofp=0.08 P(ord)=0.17 CF|ord=0.57 CF|chaos=0.09
+[  51.6s] E7 all scaled-hub s=5              CF=0.28 fp=0.04 P(fp)=0.15 lyap=+0.03 frozen= 92.6 alive=1.00 CF|fp=1.00 CF|nofp=0.15 P(ord)=0.28 CF|ord=0.82 CF|chaos=0.07
+[  53.1s] E7 hub_only unscaled s=5           CF=0.15 fp=0.01 P(fp)=0.05 lyap=+0.10 frozen= 90.8 alive=1.00 CF|fp=1.00 CF|nofp=0.11 P(ord)=0.20 CF|ord=0.38 CF|chaos=0.09
+[  54.5s] E7 hub_only scaled s=20            CF=0.38 fp=0.09 P(fp)=0.20 lyap=+0.00 frozen= 98.2 alive=1.00 CF|fp=0.88 CF|nofp=0.25 P(ord)=0.53 CF|ord=0.52 CF|chaos=0.21
+[  56.6s] E7 all scaled-hub s=20             CF=0.38 fp=0.07 P(fp)=0.23 lyap=-0.00 frozen= 98.7 alive=1.00 CF|fp=1.00 CF|nofp=0.19 P(ord)=0.45 CF|ord=0.33 CF|chaos=0.41
+[  58.2s] E7 hub_only unscaled s=20          CF=0.25 fp=0.10 P(fp)=0.25 lyap=+0.00 frozen= 98.0 alive=1.00 CF|fp=1.00 CF|nofp=0.00 P(ord)=0.53 CF|ord=0.38 CF|chaos=0.11
+== E4: scale-free in- vs out-degree ==
+[  59.6s] E4 sf_in                           CF=0.42 fp=0.07 P(fp)=0.20 lyap=-0.21 frozen= 79.7 alive=nan CF|fp=1.00 CF|nofp=0.28 P(ord)=0.62 CF|ord=0.64 CF|chaos=0.07
+[  61.3s] E4 sf_out                          CF=0.20 fp=0.04 P(fp)=0.10 lyap=-0.13 frozen= 76.3 alive=nan CF|fp=1.00 CF|nofp=0.11 P(ord)=0.60 CF|ord=0.33 CF|chaos=0.00
+[  63.4s] E4 er                              CF=0.12 fp=0.02 P(fp)=0.10 lyap=+0.10 frozen= 89.7 alive=nan CF|fp=1.00 CF|nofp=0.03 P(ord)=0.15 CF|ord=0.83 CF|chaos=0.00
+== E5: hub column norm growth + N scaling ==
+[  65.5s] E5 hub_forced s=5 growth           CF=0.35 fp=0.06 P(fp)=0.28 lyap=-0.10 frozen= 94.1 alive=1.00 CF|fp=1.00 CF|nofp=0.10 P(ord)=0.45 CF|ord=0.78 CF|chaos=0.00
+   norm prediction rel. error: {'n0': 1451.0691711436386, 'growth_measured': 42.24184693703508, 'growth_predicted': 43.001453841314245, 'corr': 0.2597064265095251}
+[  67.0s] E5 hub_clamped s=20 N=60           CF=0.35 fp=0.15 P(fp)=0.28 lyap=-0.01 frozen= 49.1 alive=1.00 CF|fp=1.00 CF|nofp=0.10 P(ord)=0.65 CF|ord=0.38 CF|chaos=0.29
+[  68.5s] E5 er N=60                         CF=0.20 fp=0.05 P(fp)=0.12 lyap=+0.01 frozen= 45.3 alive=nan CF|fp=1.00 CF|nofp=0.09 P(ord)=0.33 CF|ord=0.54 CF|chaos=0.04
+[  70.7s] E5 hub_clamped s=20 N=120          CF=0.33 fp=0.09 P(fp)=0.20 lyap=+0.01 frozen= 98.7 alive=1.00 CF|fp=1.00 CF|nofp=0.16 P(ord)=0.40 CF|ord=0.50 CF|chaos=0.21
+[  72.8s] E5 er N=120                        CF=0.10 fp=0.02 P(fp)=0.10 lyap=+0.12 frozen= 90.0 alive=nan CF|fp=1.00 CF|nofp=0.00 P(ord)=0.10 CF|ord=1.00 CF|chaos=0.00
+[  76.7s] E5 hub_clamped s=20 N=240          CF=0.35 fp=0.04 P(fp)=0.17 lyap=+0.01 frozen=196.6 alive=1.00 CF|fp=1.00 CF|nofp=0.21 P(ord)=0.50 CF|ord=0.50 CF|chaos=0.20
+[  80.5s] E5 er N=240                        CF=0.00 fp=0.00 P(fp)=0.00 lyap=+0.30 frozen=177.6 alive=nan CF|fp=nan CF|nofp=0.00 P(ord)=0.00 CF|ord=nan CF|chaos=0.00
+== E6: stability of converged solutions (fresh runs) ==
+[  82.6s] E6 hub_clamped s=20                CF=0.33 fp=0.11 P(fp)=0.25 lyap=+0.00 frozen= 98.1 alive=1.00 CF|fp=1.00 CF|nofp=0.10 P(ord)=0.47 CF|ord=0.42 CF|chaos=0.24
+[  84.2s] E6 sf_in                           CF=0.35 fp=0.07 P(fp)=0.20 lyap=-0.21 frozen= 78.5 alive=nan CF|fp=0.88 CF|nofp=0.22 P(ord)=0.57 CF|ord=0.57 CF|chaos=0.06
+   E6 hub_clamped s=20: lead_eig conv=-0.702 nonconv=-0.382 robust=0.69 |dW| conv=12.60 t_conv med=90
+   E6 sf_in: lead_eig conv=-0.700 nonconv=-0.615 robust=0.71 |dW| conv=9.46 t_conv med=154
+wrote /home/user/Exploratory-Adaptation/experiments/results/summary_N120_t300_n40.json  (84s)

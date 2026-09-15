@@ -1,0 +1,17 @@
+== E8: N scaling at mean_k=3.5 ==
+[   3.0s] E8 er N=60                         CF=0.28 fp=0.10 P(fp)=0.25 lyap=-0.27 frozen= 42.0 alive=nan CF|fp=1.00 CF|nofp=0.04 P(ord)=0.65 CF|ord=0.41 CF|chaos=0.05
+[   5.0s] E8 sf_in N=60                      CF=0.20 fp=0.04 P(fp)=0.10 lyap=-0.20 frozen= 38.9 alive=nan CF|fp=1.00 CF|nofp=0.11 P(ord)=0.68 CF|ord=0.24 CF|chaos=0.11
+[   6.7s] E8 sf_out N=60                     CF=0.37 fp=0.16 P(fp)=0.27 lyap=-0.32 frozen= 39.5 alive=nan CF|fp=1.00 CF|nofp=0.14 P(ord)=0.75 CF|ord=0.49 CF|chaos=0.00
+[   8.6s] E8 hub_clamped N=60                CF=0.35 fp=0.15 P(fp)=0.28 lyap=-0.01 frozen= 47.2 alive=1.00 CF|fp=1.00 CF|nofp=0.09 P(ord)=0.42 CF|ord=0.40 CF|chaos=0.31
+[  10.9s] E8 er N=120                        CF=0.28 fp=0.04 P(fp)=0.15 lyap=-0.09 frozen= 83.1 alive=nan CF|fp=0.89 CF|nofp=0.18 P(ord)=0.53 CF|ord=0.44 CF|chaos=0.11
+[  13.2s] E8 sf_in N=120                     CF=0.27 fp=0.07 P(fp)=0.20 lyap=-0.19 frozen= 78.1 alive=nan CF|fp=1.00 CF|nofp=0.08 P(ord)=0.58 CF|ord=0.43 CF|chaos=0.04
+[  15.3s] E8 sf_out N=120                    CF=0.40 fp=0.12 P(fp)=0.28 lyap=-0.28 frozen= 81.1 alive=nan CF|fp=0.94 CF|nofp=0.19 P(ord)=0.70 CF|ord=0.52 CF|chaos=0.11
+[  17.6s] E8 hub_clamped N=120               CF=0.40 fp=0.19 P(fp)=0.37 lyap=-0.00 frozen= 94.8 alive=1.00 CF|fp=0.95 CF|nofp=0.08 P(ord)=0.47 CF|ord=0.39 CF|chaos=0.41
+[  21.9s] E8 er N=240                        CF=0.12 fp=0.01 P(fp)=0.03 lyap=+0.05 frozen=168.7 alive=nan CF|fp=1.00 CF|nofp=0.09 P(ord)=0.13 CF|ord=0.62 CF|chaos=0.04
+[  25.7s] E8 sf_in N=240                     CF=0.32 fp=0.07 P(fp)=0.22 lyap=-0.12 frozen=157.8 alive=nan CF|fp=1.00 CF|nofp=0.13 P(ord)=0.50 CF|ord=0.60 CF|chaos=0.03
+[  29.6s] E8 sf_out N=240                    CF=0.30 fp=0.09 P(fp)=0.20 lyap=-0.20 frozen=163.1 alive=nan CF|fp=0.92 CF|nofp=0.15 P(ord)=0.62 CF|ord=0.49 CF|chaos=0.00
+[  33.6s] E8 hub_clamped N=240               CF=0.33 fp=0.11 P(fp)=0.23 lyap=-0.00 frozen=193.3 alive=1.00 CF|fp=1.00 CF|nofp=0.13 P(ord)=0.52 CF|ord=0.39 CF|chaos=0.28
+[  46.6s] E8 er N=480                        CF=0.00 fp=0.00 P(fp)=0.00 lyap=+0.14 frozen=341.5 alive=nan CF|fp=nan CF|nofp=0.00 P(ord)=0.02 CF|ord=0.00 CF|chaos=0.00
+[  59.1s] E8 sf_in N=480                     CF=0.13 fp=0.01 P(fp)=0.05 lyap=-0.01 frozen=312.9 alive=nan CF|fp=1.00 CF|nofp=0.09 P(ord)=0.35 CF|ord=0.29 CF|chaos=0.05
+[  70.3s] E8 sf_out N=480                    CF=0.33 fp=0.07 P(fp)=0.23 lyap=-0.21 frozen=332.5 alive=nan CF|fp=1.00 CF|nofp=0.13 P(ord)=0.53 CF|ord=0.59 CF|chaos=0.04
+[  81.0s] E8 hub_clamped N=480               CF=0.42 fp=0.12 P(fp)=0.32 lyap=+0.00 frozen=388.9 alive=1.00 CF|fp=0.95 CF|nofp=0.17 P(ord)=0.50 CF|ord=0.47 CF|chaos=0.37

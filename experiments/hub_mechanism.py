@@ -117,8 +117,8 @@ def init_b(rng, N, c, b_alpha, g_0, m_b):
     return b
 
 
-def run_trial(rng, net, *, learn="all", b_alpha, c, g_0, m_b, D, eps, mu, M_0,
-              target, dt, t_max, T_stop, tol, kick=0.3):
+def run_trial(rng, net, *, learn="all", hub_noise_gain=1.0, b_alpha, c, g_0, m_b,
+              D, eps, mu, M_0, target, dt, t_max, T_stop, tol, kick=0.3):
     T, J, hub, clamp = net["T"], net["J"], net["hub"], net["clamp"]
     N = T.shape[0]
     Tlearn = T.copy()
@@ -130,6 +130,9 @@ def run_trial(rng, net, *, learn="all", b_alpha, c, g_0, m_b, D, eps, mu, M_0,
         Tlearn[:] = 0
     active = np.where(Tlearn != 0)
     n_active = active[0].size
+    gain = np.ones(n_active)
+    if hub is not None and hub_noise_gain != 1.0:
+        gain[active[1] == hub] = hub_noise_gain   # scale-matched hub exploration
     hub_col = np.where(T[:, hub] != 0)[0] if hub is not None else None
 
     b = init_b(rng, N, c, b_alpha, g_0, m_b)
@@ -169,7 +172,7 @@ def run_trial(rng, net, *, learn="all", b_alpha, c, g_0, m_b, D, eps, mu, M_0,
 
         x = x + dt * dx
         if n_active and M_s > 0.0:
-            W[active] += sqrt_dt_D * np.sqrt(M_s) * rng.standard_normal(n_active)
+            W[active] += sqrt_dt_D * np.sqrt(M_s) * gain * rng.standard_normal(n_active)
         intM += M_s * dt
         if hub is not None and i % 50 == 0:
             times.append(i * dt)
@@ -221,10 +224,10 @@ def run_trial(rng, net, *, learn="all", b_alpha, c, g_0, m_b, D, eps, mu, M_0,
                 norm_t=norm_t, norm_pred=norm_pred, norm_times=times)
 
 
-def worker(seed, kind, N, mean_k, sigma, alpha, learn, trial_kwargs):
+def worker(seed, kind, N, mean_k, sigma, alpha, learn, trial_kwargs, hub_noise_gain=1.0):
     rng = np.random.default_rng(seed)
     net = build(rng, kind, N, mean_k, sigma, alpha)
-    r = run_trial(rng, net, learn=learn, **trial_kwargs)
+    r = run_trial(rng, net, learn=learn, hub_noise_gain=hub_noise_gain, **trial_kwargs)
     r.update(seed=seed, kind=kind, N=N, sigma=sigma, alpha=alpha, learn=learn)
     return r
 
@@ -233,7 +236,7 @@ def condition(rng, n_trials, n_jobs, trial_kwargs, **cfg):
     seeds = rng.integers(0, 2 ** 31 - 1, size=n_trials).tolist()
     return Parallel(n_jobs=n_jobs)(delayed(worker)(
         s, cfg["kind"], cfg["N"], cfg["mean_k"], cfg["sigma"], cfg["alpha"],
-        cfg.get("learn", "all"), trial_kwargs) for s in seeds)
+        cfg.get("learn", "all"), trial_kwargs, cfg.get("hub_noise_gain", 1.0)) for s in seeds)
 
 
 def summarize(rs):
@@ -311,6 +314,19 @@ def main():
             run(f"E3 {learn}", kind="hub_clamped", sigma=20.0, learn=learn)
         run("E3 er none", kind="er", sigma=0.0, learn="none")
 
+    # E7: scale-matched exploration of the hub column (fair intrinsic-dimension test)
+    if want("E7"):
+        print("== E7: hub-only learning with noise scaled to the hub weight scale ==")
+        g_eff = 10.0 / np.sqrt(args.mean_k)
+        for sigma in (5.0, 20.0):
+            gain = sigma / g_eff
+            run(f"E7 hub_only scaled s={sigma:g}", kind="hub_clamped", sigma=sigma,
+                learn="hub_only", hub_noise_gain=gain)
+            run(f"E7 all scaled-hub s={sigma:g}", kind="hub_clamped", sigma=sigma,
+                learn="all", hub_noise_gain=gain)
+            run(f"E7 hub_only unscaled s={sigma:g}", kind="hub_clamped", sigma=sigma,
+                learn="hub_only")
+
     # E4: scale-free in vs out degree, my own orientation convention
     if want("E4"):
         print("== E4: scale-free in- vs out-degree ==")
@@ -321,18 +337,23 @@ def main():
     if want("E5"):
         print("== E5: hub column norm growth + N scaling ==")
         rs = run("E5 hub_forced s=5 growth", kind="hub_forced", sigma=5.0)
-        err = []
-        for r in rs:
-            nt, npred = np.array(r["norm_t"]), np.array(r["norm_pred"])
-            if len(nt) > 2:
-                err.append(np.abs(nt - npred).max() / max(nt.max() - nt[0], 1e-9))
-        results["E5 growth"] = dict(rel_err_max_growth=float(np.mean(err)),
-                                    n0=float(np.mean([r["norm_t"][0] for r in rs])),
-                                    n_end=float(np.mean([r["norm_t"][-1] for r in rs])))
+        meas = [r["norm_t"][-1] - r["norm_t"][0] for r in rs]
+        pred = [r["norm_pred"][-1] - r["norm_pred"][0] for r in rs]
+        results["E5 growth"] = dict(
+            n0=float(np.mean([r["norm_t"][0] for r in rs])),
+            growth_measured=float(np.mean(meas)), growth_predicted=float(np.mean(pred)),
+            corr=float(np.corrcoef(meas, pred)[0, 1]))
         print("   norm prediction rel. error:", results["E5 growth"])
         for N in (60, 120, 240):
             run(f"E5 hub_clamped s=20 N={N}", kind="hub_clamped", sigma=20.0, N=N)
             run(f"E5 er N={N}", kind="er", sigma=0.0, N=N)
+
+    # E8: N scaling of every ensemble at equal mean degree
+    if want("E8"):
+        print(f"== E8: N scaling at mean_k={args.mean_k} ==")
+        for N in (60, 120, 240, 480):
+            for kind in ("er", "sf_in", "sf_out", "hub_clamped"):
+                run(f"E8 {kind} N={N}", kind=kind, sigma=20.0, N=N)
 
     # E6: implicit bias / robustness of converged solutions (uses E1/E4 raw data)
     if want("E6"):

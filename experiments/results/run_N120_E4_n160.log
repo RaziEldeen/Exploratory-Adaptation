@@ -1,0 +1,4 @@
+[   6.8s] E4 sf_in                           CF=0.32 fp=0.07 P(fp)=0.20 lyap=-0.17 frozen= 78.0 alive=nan CF|fp=0.94 CF|nofp=0.16 P(ord)=0.60 CF|ord=0.48 CF|chaos=0.08
+[  12.6s] E4 sf_out                          CF=0.34 fp=0.09 P(fp)=0.21 lyap=-0.22 frozen= 79.1 alive=nan CF|fp=0.97 CF|nofp=0.17 P(ord)=0.63 CF|ord=0.45 CF|chaos=0.15
+[  20.7s] E4 er                              CF=0.06 fp=0.01 P(fp)=0.04 lyap=+0.15 frozen= 90.4 alive=nan CF|fp=1.00 CF|nofp=0.01 P(ord)=0.07 CF|ord=0.58 CF|chaos=0.01
+[  19.0s] E4 er                              CF=0.26 fp=0.05 P(fp)=0.17 lyap=-0.12 frozen= 84.3 alive=nan CF|fp=0.93 CF|nofp=0.12 P(ord)=0.54 CF|ord=0.44 CF|chaos=0.05
