@@ -91,6 +91,31 @@ def build(rng, kind, N, mean_k, sigma, alpha, g_0=10.0, gamma=2.4, n_hubs=1, top
             deg = T.sum(1) if kind == "sf_in" else T.sum(0)
             hub = np.argsort(deg)[::-1][:top_hubs]
         return dict(T=T, J=gaussian_weights(rng, T, g_0), hub=hub, clamp=None)
+    if kind in ("sf_out_nohh", "sf_out_placebo"):
+        # sf_out with hub->hub edges (among top_hubs by out-degree) rewired so the
+        # target hub receives from a random bulk node instead. Placebo rewires the
+        # same number of bulk->hub edges to other bulk sources.
+        T = sf_graph(rng, N, heavy="out", gamma=gamma)
+        k = max(top_hubs, 1)
+        hubs = np.argsort(T.sum(0))[::-1][:k]
+        is_hub = np.zeros(N, bool); is_hub[hubs] = True
+        bulk = np.where(~is_hub)[0]
+        hh = [(tgt, src) for tgt in hubs for src in hubs if T[tgt, src]]
+        n_hh = len(hh)
+        if kind == "sf_out_placebo":
+            bh = [(tgt, src) for tgt in hubs for src in bulk if T[tgt, src]]
+            idx = rng.permutation(len(bh))[:n_hh]
+            hh = [bh[i] for i in idx]
+        for tgt, src in hh:
+            T[tgt, src] = 0
+            for _ in range(100):
+                r = rng.choice(bulk)
+                if r != tgt and not T[tgt, r]:
+                    T[tgt, r] = 1
+                    break
+        net = dict(T=T, J=gaussian_weights(rng, T, g_0), hub=hubs, clamp=None)
+        net["n_rewired"] = n_hh
+        return net
     if kind == "hub_dynamic":                 # hub with ordinary in-degree, broad out-degree
         nb = N - 1
         Tb = er_bulk(rng, nb, mean_k)
@@ -305,7 +330,8 @@ def worker(seed, kind, N, mean_k, sigma, alpha, learn, trial_kwargs, hub_noise_g
         rp = run_trial(np.random.default_rng(seed + 1), net, learn="none", b=b, x0=x0, **pk)
         pr_probe, q_probe = rp["pr_early"], rp["q_early"]
     r = run_trial(rng, net, learn=learn, hub_noise_gain=hub_noise_gain, b=b, x0=x0, **trial_kwargs)
-    r.update(pr_probe=pr_probe, q_probe=q_probe, gamma=gamma, n_hubs=n_hubs)
+    r.update(pr_probe=pr_probe, q_probe=q_probe, gamma=gamma, n_hubs=n_hubs,
+             n_rewired=net.get("n_rewired", 0))
     r.update(seed=seed, kind=kind, N=N, sigma=sigma, alpha=alpha, learn=learn)
     return r
 
@@ -323,6 +349,7 @@ def summarize(rs):
     a = lambda k: np.array([r[k] for r in rs], dtype=float)
     conv = a("conv")
     out = dict(n=len(rs), CF=conv.mean(), n_learn=float(a("n_learn").mean()),
+               n_rewired=float(a("n_rewired").mean()),
                frac_fp=a("frac_fp").mean(), lyap_end=np.nanmean(a("lyap_end")),
                n_frozen=a("n_frozen").mean(), hub_alive=np.nanmean(a("hub_alive")),
                P_fp_any=float(np.mean(a("frac_fp") > 0.05)),
@@ -356,6 +383,7 @@ def main():
     ap.add_argument("--n-jobs", type=int, default=-1)
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--t-max", type=float, default=300.0)
+    ap.add_argument("--top-hubs-list", type=int, nargs="+", default=[5, 10, 20])
     ap.add_argument("--only", nargs="*", default=None,
                     help="subset of experiments: E1 E3 E4 E5 E6")
     args = ap.parse_args()
@@ -515,6 +543,14 @@ def main():
         for kind in ("sf_out", "sf_in", "er"):
             for learn in ("all", "hub_in_only", "except_hub_in", "hub_only", "none"):
                 run(f"E11 {kind} top3 {learn}", kind=kind, sigma=0.0, top_hubs=3, learn=learn)
+
+    # E12: hierarchy test: rewire hub->hub edges away
+    if want("E12"):
+        print("== E12: hub->hub edges rewired to bulk sources (hierarchy test) ==")
+        for k in args.top_hubs_list:
+            for kind in ("sf_out", "sf_out_nohh", "sf_out_placebo"):
+                run(f"E12 {kind} top{k}", kind=kind, sigma=0.0, top_hubs=k)
+                print(f"      rewired edges per graph: {results[f'E12 {kind} top{k}']['n_rewired']:.1f}")
 
     # E6: implicit bias / robustness of converged solutions (uses E1/E4 raw data)
     if want("E6"):

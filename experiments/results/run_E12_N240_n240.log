@@ -1,0 +1,13 @@
+== E12: hub->hub edges rewired to bulk sources (hierarchy test) ==
+[  16.7s] E12 sf_out top10                   CF=0.33 nW=   775 fp=0.07
+      rewired edges per graph: 0.0
+[  32.7s] E12 sf_out_nohh top10              CF=0.27 nW=   760 fp=0.07
+      rewired edges per graph: 10.1
+[  48.0s] E12 sf_out_placebo top10           CF=0.35 nW=   766 fp=0.08
+      rewired edges per graph: 10.3
+[  63.2s] E12 sf_out top20                   CF=0.34 nW=   756 fp=0.08
+      rewired edges per graph: 0.0
+[  79.1s] E12 sf_out_nohh top20              CF=0.29 nW=   758 fp=0.07
+      rewired edges per graph: 26.9
+[  94.3s] E12 sf_out_placebo top20           CF=0.33 nW=   765 fp=0.08
+      rewired edges per graph: 27.9

@@ -161,3 +161,29 @@ A single dynamic hub (3 in-edges, 120 out-edges, sigma 20) is too strong a
 common drive at this sigma: CF 0.13 for all weights, but the same 0.13 with
 only its 3 in-edges learnable, again showing that those weights are where
 the leverage is.
+
+## 11. Hierarchy test: rewiring hub->hub edges (E12, N = 240, k = 3.5)
+
+In the configuration model a node's in-neighbours are sampled in proportion
+to their out-degree, so the biggest broadcasters are preferentially driven
+by other big broadcasters. To test whether that chain matters, hub->hub
+edges among the top-k out-degree nodes were rewired so the target hub
+receives from a random bulk node instead (degrees essentially preserved;
+about 10 edges for k = 10, 27 for k = 20, out of about 840). Placebo:
+the same number of bulk->hub edges rewired to other bulk sources.
+
+| top-k | trials | intact | hub->hub removed | placebo |
+|-------|--------|--------|------------------|---------|
+| 5     | 80     | 0.24   | 0.28             | 0.41    |
+| 10    | 80     | 0.34   | 0.25             | 0.34    |
+| 20    | 80     | 0.34   | 0.30             | 0.39    |
+| 10    | 240    | 0.33   | 0.27             | 0.35    |
+| 20    | 240    | 0.34   | 0.29             | 0.33    |
+
+With 240 trials (SE about 0.03) removing the hub->hub edges costs 0.05-0.08
+relative to intact and placebo, consistently in both k. So about 1 % of the
+edges, the ones linking broadcasters to each other, account for roughly a
+fifth of the sf_out advantage over Erdos-Renyi (0.10). The hierarchy is
+real but it is a second-order correction: sf_out without hub->hub edges
+still converges at 0.27-0.29, far above Erdos-Renyi, on the strength of
+individual hub leverage plus low dimensionality.
