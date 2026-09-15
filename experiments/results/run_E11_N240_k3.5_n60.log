@@ -1,0 +1,24 @@
+== E11: learning restricted to hub in-edges (leverage test) ==
+[   5.9s] E11 hub_dynamic all                CF=0.13 nW=   952 fp=0.04 P(fp)=0.10 lyap=-0.22 frozen=187.0 alive=0.85 CF|fp=0.83 CF
+[   9.4s] E11 hub_dynamic hub_in_only        CF=0.13 nW=     3 fp=0.23 P(fp)=0.30 lyap=-0.19 frozen=185.9 alive=0.83 CF|fp=0.33 CF
+[  13.7s] E11 hub_dynamic except_hub_in      CF=0.25 nW=   953 fp=0.08 P(fp)=0.23 lyap=-0.24 frozen=186.5 alive=0.90 CF|fp=1.00 CF
+[  17.3s] E11 hub_dynamic hub_only           CF=0.10 nW=   119 fp=0.02 P(fp)=0.03 lyap=-0.19 frozen=183.7 alive=0.85 CF|fp=1.00 CF
+[  20.2s] E11 hub_dynamic none               CF=0.05 nW=     0 fp=0.29 P(fp)=0.33 lyap=-0.25 frozen=186.1 alive=0.83 CF|fp=0.15 CF
+[  24.3s] E11 hub_clamped all                CF=0.38 nW=   956 fp=0.15 P(fp)=0.32 lyap=-0.00 frozen=193.1 alive=1.00 CF|fp=1.00 CF
+[  27.7s] E11 hub_clamped hub_only           CF=0.25 nW=   119 fp=0.11 P(fp)=0.22 lyap=-0.00 frozen=193.3 alive=1.00 CF|fp=0.92 CF
+[  30.6s] E11 hub_clamped none               CF=0.18 nW=     0 fp=0.60 P(fp)=0.70 lyap=+0.00 frozen=193.6 alive=1.00 CF|fp=0.24 CF
+[  34.4s] E11 sf_out top3 all                CF=0.37 nW=   766 fp=0.07 P(fp)=0.17 lyap=-0.17 frozen=164.1 alive=0.86 CF|fp=1.00 CF
+[  37.6s] E11 sf_out top3 hub_in_only        CF=0.20 nW=     9 fp=0.11 P(fp)=0.22 lyap=-0.18 frozen=163.6 alive=0.88 CF|fp=0.69 CF
+[  41.6s] E11 sf_out top3 except_hub_in      CF=0.28 nW=   756 fp=0.04 P(fp)=0.12 lyap=-0.20 frozen=166.2 alive=0.87 CF|fp=0.86 CF
+[  45.1s] E11 sf_out top3 hub_only           CF=0.18 nW=   190 fp=0.05 P(fp)=0.10 lyap=-0.13 frozen=162.4 alive=0.87 CF|fp=1.00 CF
+[  48.0s] E11 sf_out top3 none               CF=0.08 nW=     0 fp=0.26 P(fp)=0.32 lyap=-0.24 frozen=161.5 alive=0.88 CF|fp=0.21 CF
+[  52.1s] E11 sf_in top3 all                 CF=0.25 nW=   748 fp=0.03 P(fp)=0.12 lyap=-0.11 frozen=159.5 alive=0.99 CF|fp=1.00 CF
+[  55.6s] E11 sf_in top3 hub_in_only         CF=0.13 nW=   153 fp=0.05 P(fp)=0.08 lyap=-0.15 frozen=155.1 alive=0.98 CF|fp=1.00 CF
+[  59.3s] E11 sf_in top3 except_hub_in       CF=0.27 nW=   598 fp=0.04 P(fp)=0.17 lyap=-0.18 frozen=157.3 alive=0.99 CF|fp=1.00 CF
+[  62.9s] E11 sf_in top3 hub_only            CF=0.05 nW=     8 fp=0.11 P(fp)=0.23 lyap=-0.16 frozen=160.0 alive=0.99 CF|fp=0.14 CF
+[  65.9s] E11 sf_in top3 none                CF=0.07 nW=     0 fp=0.08 P(fp)=0.13 lyap=-0.10 frozen=155.9 alive=0.99 CF|fp=0.50 CF
+[  70.3s] E11 er top3 all                    CF=0.10 nW=   829 fp=0.01 P(fp)=0.02 lyap=+0.04 frozen=167.5 alive=0.92 CF|fp=1.00 CF
+[  73.9s] E11 er top3 hub_in_only            CF=0.03 nW=    10 fp=0.03 P(fp)=0.07 lyap=+0.00 frozen=168.3 alive=0.92 CF|fp=0.00 CF
+[  78.4s] E11 er top3 except_hub_in          CF=0.15 nW=   835 fp=0.02 P(fp)=0.08 lyap=-0.01 frozen=171.1 alive=0.90 CF|fp=0.80 CF
+[  82.0s] E11 er top3 hub_only               CF=0.03 nW=    27 fp=0.01 P(fp)=0.03 lyap=-0.04 frozen=168.9 alive=0.86 CF|fp=1.00 CF
+[  84.9s] E11 er top3 none                   CF=0.05 nW=     0 fp=0.06 P(fp)=0.10 lyap=-0.02 frozen=167.4 alive=0.92 CF|fp=0.50 CF

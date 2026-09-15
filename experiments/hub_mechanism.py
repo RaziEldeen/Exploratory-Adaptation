@@ -76,14 +76,35 @@ def gaussian_weights(rng, T, g_0):
     return J
 
 
-def build(rng, kind, N, mean_k, sigma, alpha, g_0=10.0, gamma=2.4, n_hubs=1):
-    """Return dict(T, J, hub, clamp); hub = array of hub indices or None."""
-    if kind == "er":
-        T = er_bulk(rng, N, mean_k)
-        return dict(T=T, J=gaussian_weights(rng, T, g_0), hub=None, clamp=None)
-    if kind in ("sf_in", "sf_out"):
-        T = sf_graph(rng, N, heavy="in" if kind == "sf_in" else "out", gamma=gamma)
-        return dict(T=T, J=gaussian_weights(rng, T, g_0), hub=None, clamp=None)
+def build(rng, kind, N, mean_k, sigma, alpha, g_0=10.0, gamma=2.4, n_hubs=1, top_hubs=0):
+    """Return dict(T, J, hub, clamp); hub = array of hub indices or None.
+
+    top_hubs > 0 tags the top-k out-degree (sf_out, er) or in-degree (sf_in)
+    nodes as 'hubs' so that learning can be restricted to their edges."""
+    if kind in ("er", "sf_in", "sf_out"):
+        if kind == "er":
+            T = er_bulk(rng, N, mean_k)
+        else:
+            T = sf_graph(rng, N, heavy="in" if kind == "sf_in" else "out", gamma=gamma)
+        hub = None
+        if top_hubs > 0:
+            deg = T.sum(1) if kind == "sf_in" else T.sum(0)
+            hub = np.argsort(deg)[::-1][:top_hubs]
+        return dict(T=T, J=gaussian_weights(rng, T, g_0), hub=hub, clamp=None)
+    if kind == "hub_dynamic":                 # hub with ordinary in-degree, broad out-degree
+        nb = N - 1
+        Tb = er_bulk(rng, nb, mean_k)
+        T = np.zeros((N, N), dtype=np.uint8)
+        J = np.zeros((N, N))
+        T[:nb, :nb], J[:nb, :nb] = Tb, gaussian_weights(rng, Tb, g_0)
+        h = N - 1
+        in_mask = rng.random(nb) < mean_k / nb
+        T[h, :nb] = in_mask
+        J[h, :nb][in_mask] = (g_0 / np.sqrt(mean_k)) * rng.standard_normal(in_mask.sum())
+        out_mask = rng.random(nb) < alpha
+        T[:nb, h] = out_mask
+        J[:nb, h][out_mask] = sigma * rng.standard_normal(out_mask.sum())
+        return dict(T=T, J=J, hub=np.array([h]), clamp=None)
     if kind == "hubs":                        # n_hubs clamped bias nodes
         nb = N - n_hubs
         Tb = er_bulk(rng, nb, mean_k)
@@ -142,6 +163,11 @@ def run_trial(rng, net, *, learn="all", hub_noise_gain=1.0, b=None, x0=None,
         Tlearn[:, ~is_hub_col] = 0            # only the hub out-columns move
     elif learn == "bulk_only" and hub is not None:
         Tlearn[:, is_hub_col] = 0
+    elif learn == "hub_in_only" and hub is not None:
+        keep = np.zeros_like(Tlearn); keep[hub, :] = Tlearn[hub, :]
+        Tlearn = keep
+    elif learn == "except_hub_in" and hub is not None:
+        Tlearn[hub, :] = 0
     elif learn == "none":
         Tlearn[:] = 0
     active = np.where(Tlearn != 0)
@@ -259,7 +285,7 @@ def run_trial(rng, net, *, learn="all", hub_noise_gain=1.0, b=None, x0=None,
                 break
         robust = float(ok)
 
-    return dict(conv=converged, t_conv=t_conv, frac_fp=fp_steps / steps_done,
+    return dict(conv=converged, t_conv=t_conv, frac_fp=fp_steps / steps_done, n_learn=int(n_active),
                 pr_early=pr_early, q_early=q_early, pr_late=pr_late, q_late=q_late,
                 lyap_end=lyap_end, n_frozen=n_frozen, hub_alive=hub_alive,
                 lead_eig=lead, dW=float(np.linalg.norm(W - W0)), robust=robust,
@@ -268,9 +294,9 @@ def run_trial(rng, net, *, learn="all", hub_noise_gain=1.0, b=None, x0=None,
 
 
 def worker(seed, kind, N, mean_k, sigma, alpha, learn, trial_kwargs, hub_noise_gain=1.0,
-           gamma=2.4, n_hubs=1, probe=False):
+           gamma=2.4, n_hubs=1, probe=False, top_hubs=0):
     rng = np.random.default_rng(seed)
-    net = build(rng, kind, N, mean_k, sigma, alpha, gamma=gamma, n_hubs=n_hubs)
+    net = build(rng, kind, N, mean_k, sigma, alpha, gamma=gamma, n_hubs=n_hubs, top_hubs=top_hubs)
     b = init_b(rng, N, trial_kwargs["c"], trial_kwargs["b_alpha"], trial_kwargs["g_0"], trial_kwargs["m_b"])
     x0 = 10.0 * rng.standard_normal(N)
     pr_probe = q_probe = np.nan
@@ -289,13 +315,14 @@ def condition(rng, n_trials, n_jobs, trial_kwargs, **cfg):
     return Parallel(n_jobs=n_jobs)(delayed(worker)(
         s, cfg["kind"], cfg["N"], cfg["mean_k"], cfg["sigma"], cfg["alpha"],
         cfg.get("learn", "all"), trial_kwargs, cfg.get("hub_noise_gain", 1.0),
-        cfg.get("gamma", 2.4), cfg.get("n_hubs", 1), cfg.get("probe", False)) for s in seeds)
+        cfg.get("gamma", 2.4), cfg.get("n_hubs", 1), cfg.get("probe", False),
+        cfg.get("top_hubs", 0)) for s in seeds)
 
 
 def summarize(rs):
     a = lambda k: np.array([r[k] for r in rs], dtype=float)
     conv = a("conv")
-    out = dict(n=len(rs), CF=conv.mean(),
+    out = dict(n=len(rs), CF=conv.mean(), n_learn=float(a("n_learn").mean()),
                frac_fp=a("frac_fp").mean(), lyap_end=np.nanmean(a("lyap_end")),
                n_frozen=a("n_frozen").mean(), hub_alive=np.nanmean(a("hub_alive")),
                P_fp_any=float(np.mean(a("frac_fp") > 0.05)),
@@ -347,7 +374,7 @@ def main():
         s = summarize(rs)
         results[name] = dict(cfg=cfg, **s)
         raw[name] = [{k: v for k, v in r.items() if not k.startswith("norm")} for r in rs]
-        print(f"[{time.perf_counter() - t0:6.1f}s] {name:34s} CF={s['CF']:.2f} "
+        print(f"[{time.perf_counter() - t0:6.1f}s] {name:34s} CF={s['CF']:.2f} nW={s['n_learn']:6.0f} "
               f"fp={s['frac_fp']:.2f} P(fp)={s['P_fp_any']:.2f} "
               f"lyap={s['lyap_end']:+.2f} frozen={s['n_frozen']:5.1f} "
               f"alive={s['hub_alive']:.2f} CF|fp={s['CF_given_fp']:.2f} "
@@ -477,6 +504,17 @@ def main():
             binned.append(dict(pr_lo=float(lo), pr_hi=float(hi), CF=float(cv[sel].mean()), n=int(sel.sum())))
             print(f"     PR {lo:5.2f}-{hi:5.2f}  CF={cv[sel].mean():.2f}  n={sel.sum()}")
         results["E10 binned"] = binned
+
+    # E11: leverage test: is learning on the hubs' few in-edges enough?
+    if want("E11"):
+        print("== E11: learning restricted to hub in-edges (leverage test) ==")
+        for learn in ("all", "hub_in_only", "except_hub_in", "hub_only", "none"):
+            run(f"E11 hub_dynamic {learn}", kind="hub_dynamic", sigma=20.0, learn=learn)
+        for learn in ("all", "hub_only", "none"):
+            run(f"E11 hub_clamped {learn}", kind="hub_clamped", sigma=20.0, learn=learn)
+        for kind in ("sf_out", "sf_in", "er"):
+            for learn in ("all", "hub_in_only", "except_hub_in", "hub_only", "none"):
+                run(f"E11 {kind} top3 {learn}", kind=kind, sigma=0.0, top_hubs=3, learn=learn)
 
     # E6: implicit bias / robustness of converged solutions (uses E1/E4 raw data)
     if want("E6"):

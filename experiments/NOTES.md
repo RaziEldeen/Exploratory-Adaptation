@@ -127,3 +127,37 @@ needs an attractor whose readout is quiet in time yet still sensitive to
 the weights the walk is moving. The natural next quantity is the pair
 (temporal variance of y, sensitivity of the fixed-point readout to weight
 perturbations), measured in the same probe.
+
+## 10. What is special about out-hubs: leverage (E11, N = 240, k = 3.5, 60 trials)
+
+Learning restricted to subsets of weights. "hub in-edges" = incoming edges of
+the three highest out-degree nodes (sf_out, er) or highest in-degree nodes (sf_in).
+
+| ensemble | all weights | hub in-edges only | all except hub in-edges | hub out-edges only | none |
+|----------|-------------|-------------------|-------------------------|--------------------|------|
+| sf_out   | 0.37 (766)  | 0.20 (9)          | 0.28 (756)              | 0.18 (190)         | 0.08 |
+| sf_in    | 0.25 (748)  | 0.13 (153)        | 0.27 (598)              | 0.05 (8)           | 0.07 |
+| er       | 0.10 (829)  | 0.03 (10)         | 0.15 (835)              | 0.03 (27)          | 0.05 |
+
+(number of learnable weights in parentheses)
+
+In sf_out, nine weights, the in-edges of the three biggest broadcasters,
+recover almost half of the full learning gain. The same nine-ish weights in
+Erdos-Renyi, whose top out-degree is about 10 rather than 50+, do nothing.
+In sf_in the in-hubs' own out-edges do nothing, and their 153 in-edges do
+little: a high in-degree node is a saturated sink whose state barely responds
+to any single weight.
+
+Reading: an out-hub is a dynamic latent variable with ordinary in-degree
+(about 3.5 inputs) and very high out-degree. Each of its few in-weights
+changes its state by O(1), and its state is broadcast to a large fraction
+of the network. Leverage per weight scales like k_out / sqrt(k_in). Heavy-
+tailed out-degree with independent in-degree maximizes it; heavy-tailed
+in-degree minimizes it; clamped hubs have none (no in-edges). Low PR is the
+observability half (the readout is quiet); leverage is the controllability
+half (few weights move it). sf_out is the structure that has both.
+
+A single dynamic hub (3 in-edges, 120 out-edges, sigma 20) is too strong a
+common drive at this sigma: CF 0.13 for all weights, but the same 0.13 with
+only its 3 in-edges learnable, again showing that those weights are where
+the leverage is.
