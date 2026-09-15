@@ -148,6 +148,8 @@ def run_trial(rng, net, *, learn="all", hub_noise_gain=1.0, b_alpha, c, g_0, m_b
     intM = 0.0
     norm_t, norm_pred, times = [], [], []
     sqrt_dt_D = np.sqrt(dt * D)
+    early, late = [], []                      # activity samples for PR / overlap
+    i_e0, i_e1 = int(20 / dt), int(120 / dt)
 
     for i in range(n_steps):
         if clamp is not None:
@@ -171,6 +173,12 @@ def run_trial(rng, net, *, learn="all", hub_noise_gain=1.0, b_alpha, c, g_0, m_b
         v /= nv
 
         x = x + dt * dx
+        if i_e0 <= i < i_e1 and i % 5 == 0:
+            early.append(x.copy())
+        if i % 5 == 0:
+            late.append(x.copy())
+            if len(late) > window // 5:
+                late.pop(0)
         if n_active and M_s > 0.0:
             W[active] += sqrt_dt_D * np.sqrt(M_s) * gain * rng.standard_normal(n_active)
         intM += M_s * dt
@@ -189,6 +197,23 @@ def run_trial(rng, net, *, learn="all", hub_noise_gain=1.0, b_alpha, c, g_0, m_b
             below = 0
 
     steps_done = i + 1
+
+    def pr_and_overlap(samples):
+        X = np.array(samples)
+        if len(X) < 10:
+            return np.nan, np.nan
+        Xc = X - X.mean(0)
+        if hub is not None and clamp is not None:
+            Xc[:, hub] = 0.0
+        C = Xc.T @ Xc / len(X)
+        tr, tr2 = np.trace(C), np.sum(C * C)
+        pr = tr ** 2 / tr2 if tr2 > 0 else np.nan
+        iso = (b @ b) * tr / N                 # isotropic expectation of var(y)
+        q = float(b @ C @ b / iso) if iso > 0 else np.nan
+        return float(pr), q
+
+    pr_early, q_early = pr_and_overlap(early)
+    pr_late, q_late = pr_and_overlap(late)
     lyap_end = float(np.mean(loggrowth[max(0, steps_done - window):steps_done]))
     th = np.tanh(x)
     n_frozen = int(np.sum(np.abs(th) > 0.99))
@@ -218,6 +243,7 @@ def run_trial(rng, net, *, learn="all", hub_noise_gain=1.0, b_alpha, c, g_0, m_b
         robust = float(ok)
 
     return dict(conv=converged, t_conv=t_conv, frac_fp=fp_steps / steps_done,
+                pr_early=pr_early, q_early=q_early, pr_late=pr_late, q_late=q_late,
                 lyap_end=lyap_end, n_frozen=n_frozen, hub_alive=hub_alive,
                 lead_eig=lead, dW=float(np.linalg.norm(W - W0)), robust=robust,
                 max_in=int(T.sum(1).max()), max_out=int(T.sum(0).max()),
@@ -251,6 +277,11 @@ def summarize(rs):
                dW_conv=float(np.nanmean(np.where(conv == 1, a("dW"), np.nan))),
                robust=float(np.nanmean(a("robust"))),
                t_conv_median=float(np.nanmedian(a("t_conv"))))
+    for k in ("pr_early", "q_early", "pr_late", "q_late"):
+        v = a(k)
+        out[k] = float(np.nanmean(v))
+        out[k + "_conv"] = float(np.nanmean(np.where(conv == 1, v, np.nan))) if conv.any() else np.nan
+        out[k + "_nonconv"] = float(np.nanmean(np.where(conv == 0, v, np.nan))) if (conv == 0).any() else np.nan
     fp = a("frac_fp") > 0.05
     out["CF_given_fp"] = float(conv[fp].mean()) if fp.any() else np.nan
     out["CF_given_nofp"] = float(conv[~fp].mean()) if (~fp).any() else np.nan
@@ -354,6 +385,46 @@ def main():
         for N in (60, 120, 240, 480):
             for kind in ("er", "sf_in", "sf_out", "hub_clamped"):
                 run(f"E8 {kind} N={N}", kind=kind, sigma=20.0, N=N)
+
+    # E9: participation ratio and readout overlap as predictors of convergence
+    if want("E9"):
+        print(f"== E9: dimensionality (PR) vs convergence, mean_k={args.mean_k} ==")
+        pooled = []
+        for kind in ("er", "sf_in", "sf_out", "hub_clamped"):
+            rs = run(f"E9 {kind}", kind=kind, sigma=20.0)
+            s_ = results[f"E9 {kind}"]
+            print(f"   PR early {s_['pr_early']:.1f} (conv {s_['pr_early_conv']:.1f} / non {s_['pr_early_nonconv']:.1f})"
+                  f"  q early {s_['q_early']:.2f} (conv {s_['q_early_conv']:.2f} / non {s_['q_early_nonconv']:.2f})"
+                  f"  PR late {s_['pr_late']:.1f}  q late conv {s_['q_late_conv']:.2f} / non {s_['q_late_nonconv']:.2f}")
+            pooled += rs
+
+        def auc(score, label):
+            score, label = np.asarray(score, float), np.asarray(label, int)
+            m = np.isfinite(score)
+            score, label = score[m], label[m]
+            pos, neg = score[label == 1], score[label == 0]
+            if len(pos) == 0 or len(neg) == 0:
+                return np.nan
+            return float(np.mean(pos[:, None] > neg[None, :]) + 0.5 * np.mean(pos[:, None] == neg[None, :]))
+
+        lab = [r["conv"] for r in pooled]
+        aucs = {
+            "low PR early": auc([-r["pr_early"] for r in pooled], lab),
+            "low q early": auc([-r["q_early"] for r in pooled], lab),
+            "low lyap": auc([-r["lyap_end"] for r in pooled], lab),
+            "low PR early | ordered": auc([-r["pr_early"] for r in pooled if r["lyap_end"] < 0],
+                                          [r["conv"] for r in pooled if r["lyap_end"] < 0]),
+            "low q early | ordered": auc([-r["q_early"] for r in pooled if r["lyap_end"] < 0],
+                                         [r["conv"] for r in pooled if r["lyap_end"] < 0]),
+            "low PR early | chaotic": auc([-r["pr_early"] for r in pooled if r["lyap_end"] >= 0],
+                                          [r["conv"] for r in pooled if r["lyap_end"] >= 0]),
+            "low q early | chaotic": auc([-r["q_early"] for r in pooled if r["lyap_end"] >= 0],
+                                         [r["conv"] for r in pooled if r["lyap_end"] >= 0]),
+        }
+        results["E9 AUC"] = aucs
+        print("   pooled AUC for predicting convergence:")
+        for k, v in aucs.items():
+            print(f"     {k:28s} {v:.2f}")
 
     # E6: implicit bias / robustness of converged solutions (uses E1/E4 raw data)
     if want("E6"):

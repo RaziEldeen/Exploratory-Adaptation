@@ -1,0 +1,18 @@
+== E9: dimensionality (PR) vs convergence, mean_k=3.5 ==
+[   6.9s] E9 er                              CF=0.12 fp=0.03 P(fp)=0.10 lyap=-0.03 frozen=170.1 alive=nan CF|fp=1.00 CF|nofp=0.03 P(ord)=0.31 CF|ord=0.40 CF|chaos=0.00
+   PR early 6.0 (conv 3.4 / non 6.3)  q early 1.00 (conv 0.68 / non 1.05)  PR late 4.6  q late conv 1.20 / non 0.94
+[  12.3s] E9 sf_in                           CF=0.25 fp=0.05 P(fp)=0.17 lyap=-0.13 frozen=157.7 alive=nan CF|fp=0.93 CF|nofp=0.11 P(ord)=0.53 CF|ord=0.43 CF|chaos=0.05
+   PR early 4.3 (conv 3.1 / non 4.8)  q early 0.83 (conv 0.79 / non 0.85)  PR late 3.3  q late conv 0.67 / non 0.92
+[  17.3s] E9 sf_out                          CF=0.33 fp=0.07 P(fp)=0.17 lyap=-0.18 frozen=163.5 alive=nan CF|fp=1.00 CF|nofp=0.18 P(ord)=0.61 CF|ord=0.49 CF|chaos=0.06
+   PR early 3.1 (conv 2.5 / non 3.3)  q early 0.91 (conv 0.61 / non 1.06)  PR late 2.6  q late conv 0.62 / non 0.90
+[  23.0s] E9 hub_clamped                     CF=0.30 fp=0.08 P(fp)=0.19 lyap=-0.00 frozen=194.6 alive=1.00 CF|fp=0.87 CF|nofp=0.17 P(ord)=0.60 CF|ord=0.31 CF|chaos=0.28
+   PR early 3.0 (conv 2.6 / non 3.2)  q early 0.97 (conv 0.93 / non 0.99)  PR late 2.5  q late conv 0.56 / non 1.21
+   pooled AUC for predicting convergence:
+     low PR early                 0.76
+     low q early                  0.61
+     low lyap                     0.81
+     low PR early | ordered       0.70
+     low q early | ordered        0.64
+     low PR early | chaotic       0.85
+     low q early | chaotic        0.61
+wrote /home/user/Exploratory-Adaptation/experiments/results/summary_N240_t300_n80.json  (23s)
