@@ -86,3 +86,44 @@ weakly chaotic in directions the readout does not see.
   compare it with the static-input chaos boundary (Rajan, Abbott, Sompolinsky 2010).
 - Run longer horizons (t_max 3000+) with larger D to test whether the
   norm-growth annealing mechanism takes over.
+
+## 8. Dimensionality predicts convergence per trial (E9, N = 240, k = 3.5, 80 trials)
+
+Participation ratio (PR) measured at t = 20-120 orders the ensembles as in the
+earlier analysis: Erdos-Renyi 6.0, sf_in 4.3, sf_out 3.1, clamped hub 3.0.
+Pooled across ensembles, low PR predicts convergence with AUC 0.76
+(Lyapunov exponent: 0.81), and it keeps predicting inside the ordered
+subset (0.70) and the chaotic subset (0.85). The overlap of the readout with
+the activity covariance is weakly predictive early (0.61); by the end,
+converged trials have readout variance about 0.6 of the isotropic
+expectation vs about 1.0 for non-converged ones.
+
+## 9. But CF does not collapse onto PR (E10, N = 240, 60 trials, PR from a no-learning probe)
+
+| condition        | probe PR | CF   |
+|------------------|----------|------|
+| Erdos-Renyi      | 5.95     | 0.10 |
+| 1 clamped hub    | 1.60     | 0.32 |
+| 2 clamped hubs   | 1.13     | 0.28 |
+| 4 clamped hubs   | 1.08     | 0.08 |
+| 8 clamped hubs   | 1.05     | 0.18 |
+| sf_out gamma 2.2 | 2.49     | 0.38 |
+| sf_out gamma 2.4 | 2.29     | 0.32 |
+| sf_out gamma 3.0 | 2.83     | 0.27 |
+| sf_out gamma 4.0 | 2.65     | 0.42 |
+| sf_in gamma 2.2  | 3.61     | 0.15 |
+| sf_in gamma 2.4  | 3.79     | 0.22 |
+
+Pooled CF by PR sextile: 0.20, 0.28, 0.45, 0.24, 0.18, 0.13 for PR from 1.0
+up to 12. The relation is non-monotonic: convergence peaks at PR about
+1.2-2 and falls on both sides. Adding more clamped hubs drives PR to 1 (the
+network is pinned to a fixed point) and convergence collapses, because the
+readout can no longer be moved. Within an ensemble lower PR still helps
+(sf_out converged trials have PR 1.9 vs 2.9). Caveat: the gamma sweep also
+changes mean degree (6, 3.5, 2, 1.5), so it is not a clean tail-only sweep.
+
+Reading: low dimensionality is necessary but not sufficient. The learner
+needs an attractor whose readout is quiet in time yet still sensitive to
+the weights the walk is moving. The natural next quantity is the pair
+(temporal variance of y, sensitivity of the fixed-point readout to weight
+perturbations), measured in the same probe.

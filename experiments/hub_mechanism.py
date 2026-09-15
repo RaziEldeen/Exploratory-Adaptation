@@ -76,14 +76,26 @@ def gaussian_weights(rng, T, g_0):
     return J
 
 
-def build(rng, kind, N, mean_k, sigma, alpha, g_0=10.0):
-    """Return dict(T, J, hub, clamp) with hub = index of hub node or None."""
+def build(rng, kind, N, mean_k, sigma, alpha, g_0=10.0, gamma=2.4, n_hubs=1):
+    """Return dict(T, J, hub, clamp); hub = array of hub indices or None."""
     if kind == "er":
         T = er_bulk(rng, N, mean_k)
         return dict(T=T, J=gaussian_weights(rng, T, g_0), hub=None, clamp=None)
     if kind in ("sf_in", "sf_out"):
-        T = sf_graph(rng, N, heavy="in" if kind == "sf_in" else "out")
+        T = sf_graph(rng, N, heavy="in" if kind == "sf_in" else "out", gamma=gamma)
         return dict(T=T, J=gaussian_weights(rng, T, g_0), hub=None, clamp=None)
+    if kind == "hubs":                        # n_hubs clamped bias nodes
+        nb = N - n_hubs
+        Tb = er_bulk(rng, nb, mean_k)
+        T = np.zeros((N, N), dtype=np.uint8)
+        J = np.zeros((N, N))
+        T[:nb, :nb], J[:nb, :nb] = Tb, gaussian_weights(rng, Tb, g_0)
+        hubs = np.arange(nb, N)
+        for h in hubs:
+            mask = rng.random(nb) < alpha
+            T[:nb, h] = mask
+            J[:nb, h][mask] = sigma * rng.standard_normal(mask.sum())
+        return dict(T=T, J=J, hub=hubs, clamp=1.0)
 
     nb = N - 1
     Tb = er_bulk(rng, nb, mean_k)
@@ -104,7 +116,7 @@ def build(rng, kind, N, mean_k, sigma, alpha, g_0=10.0):
         J[h, h] = 3.0
     if kind == "hub_clamped":
         clamp = 1.0
-    return dict(T=T, J=J, hub=h, clamp=clamp)
+    return dict(T=T, J=J, hub=np.array([h]), clamp=clamp)
 
 
 # ------------------------------------------------------------------- trial --
@@ -117,27 +129,32 @@ def init_b(rng, N, c, b_alpha, g_0, m_b):
     return b
 
 
-def run_trial(rng, net, *, learn="all", hub_noise_gain=1.0, b_alpha, c, g_0, m_b,
-              D, eps, mu, M_0, target, dt, t_max, T_stop, tol, kick=0.3):
+def run_trial(rng, net, *, learn="all", hub_noise_gain=1.0, b=None, x0=None,
+              b_alpha, c, g_0, m_b, D, eps, mu, M_0, target, dt, t_max, T_stop,
+              tol, kick=0.3):
     T, J, hub, clamp = net["T"], net["J"], net["hub"], net["clamp"]
     N = T.shape[0]
+    is_hub_col = np.zeros(N, bool)
+    if hub is not None:
+        is_hub_col[hub] = True
     Tlearn = T.copy()
     if learn == "hub_only" and hub is not None:
-        Tlearn[:, :hub] = 0                   # only the hub's out-column moves
+        Tlearn[:, ~is_hub_col] = 0            # only the hub out-columns move
     elif learn == "bulk_only" and hub is not None:
-        Tlearn[:, hub] = 0
+        Tlearn[:, is_hub_col] = 0
     elif learn == "none":
         Tlearn[:] = 0
     active = np.where(Tlearn != 0)
     n_active = active[0].size
     gain = np.ones(n_active)
     if hub is not None and hub_noise_gain != 1.0:
-        gain[active[1] == hub] = hub_noise_gain   # scale-matched hub exploration
-    hub_col = np.where(T[:, hub] != 0)[0] if hub is not None else None
+        gain[is_hub_col[active[1]]] = hub_noise_gain   # scale-matched hub exploration
+    hub_mask = (T[:, is_hub_col] != 0) if hub is not None else None
 
-    b = init_b(rng, N, c, b_alpha, g_0, m_b)
+    if b is None:
+        b = init_b(rng, N, c, b_alpha, g_0, m_b)
     W, W0 = J.copy(), J.copy()
-    x = 10.0 * rng.standard_normal(N)
+    x = 10.0 * rng.standard_normal(N) if x0 is None else x0.copy()
     v = rng.standard_normal(N); v /= np.linalg.norm(v)   # tangent vector
 
     n_steps = int(round(t_max / dt))
@@ -184,9 +201,9 @@ def run_trial(rng, net, *, learn="all", hub_noise_gain=1.0, b_alpha, c, g_0, m_b
         intM += M_s * dt
         if hub is not None and i % 50 == 0:
             times.append(i * dt)
-            norm_t.append(float(np.sum(W[hub_col, hub] ** 2)))
-            n_out_learn = int(Tlearn[:, hub].sum())
-            norm_pred.append(float(np.sum(W0[hub_col, hub] ** 2) + n_out_learn * D * intM))
+            norm_t.append(float(np.sum(W[:, is_hub_col][hub_mask] ** 2)))
+            n_out_learn = int(Tlearn[:, is_hub_col].sum())
+            norm_pred.append(float(np.sum(W0[:, is_hub_col][hub_mask] ** 2) + n_out_learn * D * intM))
 
         if M_s <= tol:
             below += 1
@@ -217,7 +234,7 @@ def run_trial(rng, net, *, learn="all", hub_noise_gain=1.0, b_alpha, c, g_0, m_b
     lyap_end = float(np.mean(loggrowth[max(0, steps_done - window):steps_done]))
     th = np.tanh(x)
     n_frozen = int(np.sum(np.abs(th) > 0.99))
-    hub_alive = float(abs(th[hub]) > 0.5) if hub is not None else np.nan
+    hub_alive = float(np.mean(np.abs(th[hub]) > 0.5)) if hub is not None else np.nan
 
     # leading Jacobian eigenvalue at the final state
     Jac = W * (1 - th ** 2)[None, :] - np.eye(N)
@@ -250,10 +267,19 @@ def run_trial(rng, net, *, learn="all", hub_noise_gain=1.0, b_alpha, c, g_0, m_b
                 norm_t=norm_t, norm_pred=norm_pred, norm_times=times)
 
 
-def worker(seed, kind, N, mean_k, sigma, alpha, learn, trial_kwargs, hub_noise_gain=1.0):
+def worker(seed, kind, N, mean_k, sigma, alpha, learn, trial_kwargs, hub_noise_gain=1.0,
+           gamma=2.4, n_hubs=1, probe=False):
     rng = np.random.default_rng(seed)
-    net = build(rng, kind, N, mean_k, sigma, alpha)
-    r = run_trial(rng, net, learn=learn, hub_noise_gain=hub_noise_gain, **trial_kwargs)
+    net = build(rng, kind, N, mean_k, sigma, alpha, gamma=gamma, n_hubs=n_hubs)
+    b = init_b(rng, N, trial_kwargs["c"], trial_kwargs["b_alpha"], trial_kwargs["g_0"], trial_kwargs["m_b"])
+    x0 = 10.0 * rng.standard_normal(N)
+    pr_probe = q_probe = np.nan
+    if probe:                                  # no-learning run of the same net + readout
+        pk = dict(trial_kwargs, t_max=120.0)
+        rp = run_trial(np.random.default_rng(seed + 1), net, learn="none", b=b, x0=x0, **pk)
+        pr_probe, q_probe = rp["pr_early"], rp["q_early"]
+    r = run_trial(rng, net, learn=learn, hub_noise_gain=hub_noise_gain, b=b, x0=x0, **trial_kwargs)
+    r.update(pr_probe=pr_probe, q_probe=q_probe, gamma=gamma, n_hubs=n_hubs)
     r.update(seed=seed, kind=kind, N=N, sigma=sigma, alpha=alpha, learn=learn)
     return r
 
@@ -262,7 +288,8 @@ def condition(rng, n_trials, n_jobs, trial_kwargs, **cfg):
     seeds = rng.integers(0, 2 ** 31 - 1, size=n_trials).tolist()
     return Parallel(n_jobs=n_jobs)(delayed(worker)(
         s, cfg["kind"], cfg["N"], cfg["mean_k"], cfg["sigma"], cfg["alpha"],
-        cfg.get("learn", "all"), trial_kwargs, cfg.get("hub_noise_gain", 1.0)) for s in seeds)
+        cfg.get("learn", "all"), trial_kwargs, cfg.get("hub_noise_gain", 1.0),
+        cfg.get("gamma", 2.4), cfg.get("n_hubs", 1), cfg.get("probe", False)) for s in seeds)
 
 
 def summarize(rs):
@@ -277,7 +304,7 @@ def summarize(rs):
                dW_conv=float(np.nanmean(np.where(conv == 1, a("dW"), np.nan))),
                robust=float(np.nanmean(a("robust"))),
                t_conv_median=float(np.nanmedian(a("t_conv"))))
-    for k in ("pr_early", "q_early", "pr_late", "q_late"):
+    for k in ("pr_early", "q_early", "pr_late", "q_late", "pr_probe", "q_probe"):
         v = a(k)
         out[k] = float(np.nanmean(v))
         out[k + "_conv"] = float(np.nanmean(np.where(conv == 1, v, np.nan))) if conv.any() else np.nan
@@ -425,6 +452,31 @@ def main():
         print("   pooled AUC for predicting convergence:")
         for k, v in aucs.items():
             print(f"     {k:28s} {v:.2f}")
+
+    # E10: dimension-controlled ensembles; CF vs probe PR collapse test
+    if want("E10"):
+        print(f"== E10: CF vs participation ratio across dimension-controlled ensembles ==")
+        pooled = []
+        conds = [("er", dict(kind="er", sigma=0.0))]
+        conds += [(f"hubs k={k}", dict(kind="hubs", n_hubs=k, sigma=20.0)) for k in (1, 2, 4, 8)]
+        conds += [(f"sf_out g={g}", dict(kind="sf_out", gamma=g, sigma=0.0)) for g in (2.2, 2.4, 3.0, 4.0)]
+        conds += [(f"sf_in g={g}", dict(kind="sf_in", gamma=g, sigma=0.0)) for g in (2.2, 2.4)]
+        for name, cfg in conds:
+            rs = run(f"E10 {name}", probe=True, **cfg)
+            s_ = results[f"E10 {name}"]
+            print(f"   probe PR {s_['pr_probe']:.2f} (conv {s_['pr_probe_conv']:.2f} / non {s_['pr_probe_nonconv']:.2f})"
+                  f"  probe q {s_['q_probe']:.2f}")
+            pooled += [dict(r, cond=name) for r in rs]
+        prs = np.array([r["pr_probe"] for r in pooled]); cv = np.array([r["conv"] for r in pooled])
+        m = np.isfinite(prs)
+        edges = np.quantile(prs[m], np.linspace(0, 1, 7))
+        print("   pooled CF by probe-PR sextile:")
+        binned = []
+        for lo, hi in zip(edges[:-1], edges[1:]):
+            sel = m & (prs >= lo) & (prs <= hi)
+            binned.append(dict(pr_lo=float(lo), pr_hi=float(hi), CF=float(cv[sel].mean()), n=int(sel.sum())))
+            print(f"     PR {lo:5.2f}-{hi:5.2f}  CF={cv[sel].mean():.2f}  n={sel.sum()}")
+        results["E10 binned"] = binned
 
     # E6: implicit bias / robustness of converged solutions (uses E1/E4 raw data)
     if want("E6"):

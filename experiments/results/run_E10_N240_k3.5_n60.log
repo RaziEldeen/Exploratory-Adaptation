@@ -1,0 +1,31 @@
+== E10: CF vs participation ratio across dimension-controlled ensembles ==
+[   6.7s] E10 er                             CF=0.10 fp=0.02 P(fp)=0.05 lyap=+0.05 frozen=167.6 alive=nan CF|fp=1.00 CF|nofp=0.05 P(ord)=0.23 CF|ord=0.43 CF|chaos=0.00
+   probe PR 5.95 (conv 4.51 / non 6.10)  probe q 0.93
+[  12.6s] E10 hubs k=1                       CF=0.32 fp=0.09 P(fp)=0.20 lyap=-0.00 frozen=193.2 alive=1.00 CF|fp=0.83 CF|nofp=0.19 P(ord)=0.52 CF|ord=0.39 CF|chaos=0.24
+   probe PR 1.60 (conv 1.57 / non 1.61)  probe q 1.04
+[  18.5s] E10 hubs k=2                       CF=0.28 fp=0.15 P(fp)=0.25 lyap=+0.00 frozen=204.3 alive=1.00 CF|fp=1.00 CF|nofp=0.04 P(ord)=0.48 CF|ord=0.17 CF|chaos=0.39
+   probe PR 1.13 (conv 1.09 / non 1.15)  probe q 0.71
+[  25.3s] E10 hubs k=4                       CF=0.08 fp=0.05 P(fp)=0.08 lyap=+0.00 frozen=211.6 alive=1.00 CF|fp=1.00 CF|nofp=0.00 P(ord)=0.52 CF|ord=0.03 CF|chaos=0.14
+   probe PR 1.08 (conv 1.19 / non 1.07)  probe q 1.44
+[  32.6s] E10 hubs k=8                       CF=0.18 fp=0.09 P(fp)=0.15 lyap=-0.00 frozen=216.4 alive=1.00 CF|fp=1.00 CF|nofp=0.04 P(ord)=0.58 CF|ord=0.17 CF|chaos=0.20
+   probe PR 1.05 (conv 1.14 / non 1.03)  probe q 0.62
+[  37.9s] E10 sf_out g=2.2                   CF=0.38 fp=0.08 P(fp)=0.20 lyap=-0.17 frozen=173.6 alive=nan CF|fp=0.92 CF|nofp=0.25 P(ord)=0.58 CF|ord=0.57 CF|chaos=0.12
+   probe PR 2.49 (conv 1.86 / non 2.88)  probe q 0.97
+[  43.3s] E10 sf_out g=2.4                   CF=0.32 fp=0.09 P(fp)=0.25 lyap=-0.23 frozen=162.5 alive=nan CF|fp=1.00 CF|nofp=0.09 P(ord)=0.62 CF|ord=0.49 CF|chaos=0.04
+   probe PR 2.29 (conv 1.73 / non 2.56)  probe q 0.92
+[  48.3s] E10 sf_out g=3.0                   CF=0.27 fp=0.02 P(fp)=0.08 lyap=-0.18 frozen=128.0 alive=nan CF|fp=0.80 CF|nofp=0.22 P(ord)=0.65 CF|ord=0.31 CF|chaos=0.19
+   probe PR 2.83 (conv 2.64 / non 2.89)  probe q 1.12
+[  52.8s] E10 sf_out g=4.0                   CF=0.42 fp=0.06 P(fp)=0.17 lyap=-0.15 frozen= 87.2 alive=nan CF|fp=0.90 CF|nofp=0.32 P(ord)=0.68 CF|ord=0.49 CF|chaos=0.26
+   probe PR 2.65 (conv 2.30 / non 2.90)  probe q 1.21
+[  58.9s] E10 sf_in g=2.2                    CF=0.15 fp=0.02 P(fp)=0.08 lyap=-0.07 frozen=148.8 alive=nan CF|fp=0.80 CF|nofp=0.09 P(ord)=0.42 CF|ord=0.32 CF|chaos=0.03
+   probe PR 3.61 (conv 3.37 / non 3.65)  probe q 0.82
+[  64.5s] E10 sf_in g=2.4                    CF=0.22 fp=0.04 P(fp)=0.17 lyap=-0.11 frozen=155.8 alive=nan CF|fp=0.90 CF|nofp=0.08 P(ord)=0.53 CF|ord=0.41 CF|chaos=0.00
+   probe PR 3.79 (conv 3.05 / non 4.00)  probe q 1.17
+   pooled CF by probe-PR sextile:
+     PR  1.00- 1.00  CF=0.20  n=110
+     PR  1.00- 1.15  CF=0.28  n=110
+     PR  1.15- 2.09  CF=0.45  n=110
+     PR  2.09- 2.82  CF=0.24  n=110
+     PR  2.82- 4.33  CF=0.18  n=110
+     PR  4.33-12.00  CF=0.13  n=110
+wrote /home/user/Exploratory-Adaptation/experiments/results/summary_N240_t300_n60.json  (65s)
