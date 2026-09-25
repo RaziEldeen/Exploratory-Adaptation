@@ -1,0 +1,638 @@
+<title>Why Out-Hubs Learn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Spectral:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#f3f5f8; --surface:#ffffff; --ink:#131b27; --ink-2:#435063; --muted:#6c778a;
+  --rule:#dbe0e8; --grid:#e8ecf1;
+  --sfout:#2a78d6; --sfin:#eb6834; --hub:#1baf7a; --er:#5a667a;
+  --seq:#1c5cab; --on-strong:#ffffff;
+  --tip-bg:#131b27; --tip-ink:#f3f5f8;
+  --serif:"Spectral", Georgia, "Times New Roman", serif;
+  --sans:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#0d1219; --surface:#151b24; --ink:#e7ebf1; --ink-2:#aeb8c6; --muted:#8490a2;
+    --rule:#27303c; --grid:#1e2630;
+    --sfout:#3987e5; --sfin:#d95926; --hub:#199e70; --er:#9aa5b5;
+    --seq:#3987e5; --on-strong:#ffffff;
+    --tip-bg:#e7ebf1; --tip-ink:#0d1219;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#0d1219; --surface:#151b24; --ink:#e7ebf1; --ink-2:#aeb8c6; --muted:#8490a2;
+  --rule:#27303c; --grid:#1e2630;
+  --sfout:#3987e5; --sfin:#d95926; --hub:#199e70; --er:#9aa5b5;
+  --seq:#3987e5; --on-strong:#ffffff;
+  --tip-bg:#e7ebf1; --tip-ink:#0d1219;
+}
+
+*{box-sizing:border-box}
+body{background:var(--ground); color:var(--ink); font-family:var(--sans); font-size:15.5px; line-height:1.62; -webkit-font-smoothing:antialiased}
+.wrap{max-width:800px; margin:0 auto; padding-inline:20px; padding-block:56px 72px; display:flex; flex-direction:column; gap:56px}
+h1,h2,h3{font-family:var(--serif); font-weight:600; text-wrap:balance; margin:0; letter-spacing:-0.005em}
+h1{font-size:clamp(2rem, 5vw, 2.9rem); line-height:1.1}
+h2{font-size:1.6rem; line-height:1.2}
+h3{font-size:1.1rem; line-height:1.3}
+p{margin:0; max-width:66ch}
+.eyebrow{font-family:var(--mono); font-size:.74rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+.lede{font-size:1.13rem; color:var(--ink-2); max-width:62ch}
+section{display:flex; flex-direction:column; gap:18px}
+header{display:flex; flex-direction:column; gap:18px}
+.prose{display:flex; flex-direction:column; gap:12px}
+.prose p{color:var(--ink-2)}
+.prose strong{color:var(--ink); font-weight:600}
+em.term{font-style:italic}
+code,.mono{font-family:var(--mono); font-size:.86em}
+.num{font-variant-numeric:tabular-nums}
+
+/* key-colored inline names */
+.k{font-weight:600; white-space:nowrap}
+.k::before{content:""; display:inline-block; width:.62em; height:.62em; border-radius:50%; margin-right:.32em; vertical-align:.04em; background:currentColor}
+.k.sfout{color:var(--sfout)} .k.sfin{color:var(--sfin)} .k.hub{color:var(--hub)}
+.k.er{color:var(--er)} .k.er::before{background:transparent; border:1.5px dashed currentColor}
+
+/* figures */
+figure{margin:0; background:var(--surface); border:1px solid var(--rule); border-radius:10px; padding:20px 20px 16px; display:flex; flex-direction:column; gap:14px}
+.fighead{display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:6px 16px}
+.fignum{font-family:var(--mono); font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+figcaption{font-size:.86rem; color:var(--muted); line-height:1.5; max-width:70ch}
+.legend{display:flex; flex-wrap:wrap; gap:6px 18px; font-size:.82rem; color:var(--ink-2)}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.sw{width:16px; height:0; border-top:2.5px solid currentColor; display:inline-block}
+.sw.dash{border-top-style:dashed}
+.sw.dot{width:9px; height:9px; border:0; border-radius:50%; background:currentColor}
+.sw.ring{width:9px; height:9px; border:2px solid currentColor; border-radius:50%; background:transparent}
+.chart{width:100%; position:relative}
+.chart svg{display:block; overflow:visible}
+svg text{font-family:var(--sans); fill:var(--ink-2)}
+svg .tick{font-size:11px; fill:var(--muted); font-variant-numeric:tabular-nums}
+svg .axis{font-size:11.5px; fill:var(--muted)}
+svg .dl{font-size:12px; font-weight:600}
+svg .note{font-size:11px; fill:var(--muted)}
+svg .grid{stroke:var(--grid); stroke-width:1}
+svg .base{stroke:var(--rule); stroke-width:1}
+.hit{fill:transparent; cursor:default}
+.hit:focus{outline:none}
+.hit:focus-visible{stroke:var(--ink); stroke-width:1.5}
+
+/* two-panel */
+.panels{display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:20px}
+@media (max-width:640px){.panels{grid-template-columns:1fr}}
+.subhead{font-size:.8rem; font-weight:600; color:var(--ink-2)}
+
+/* heatmap */
+.heat{display:grid; grid-template-columns:auto repeat(3, minmax(0,1fr)); gap:4px; font-variant-numeric:tabular-nums}
+.heat .hl{font-size:.78rem; color:var(--muted); display:flex; align-items:center; justify-content:center; padding:4px}
+.heat .rl{justify-content:flex-end; padding-right:10px; font-family:var(--mono)}
+.heat .cl{font-family:var(--mono)}
+.cell{border-radius:4px; padding:12px 8px; text-align:center; display:flex; flex-direction:column; gap:2px; color:var(--ink); outline:none}
+.cell b{font-size:1.25rem; font-weight:600; font-family:var(--sans)}
+.cell small{font-size:.74rem; opacity:.82}
+.cell.hi{color:var(--on-strong)}
+.cell:focus-visible{box-shadow:0 0 0 2px var(--ink)}
+.corner{font-size:.72rem; color:var(--muted); display:flex; align-items:flex-end; justify-content:flex-end; padding:4px 10px 4px 4px; font-family:var(--mono); line-height:1.25; text-align:right}
+
+/* bar rows (HTML bars) */
+.bars{display:grid; grid-template-columns:minmax(0,11.5rem) minmax(0,1fr) 3.2rem; gap:7px 10px; align-items:center; font-size:.84rem}
+.bars .lab{color:var(--ink-2); line-height:1.25}
+.bars .lab small{color:var(--muted); font-family:var(--mono); font-size:.72rem}
+.bars .lab.em{color:var(--ink); font-weight:600}
+.track{height:14px; position:relative; background:linear-gradient(to right, var(--grid) 1px, transparent 1px) 0 0/25% 100%}
+.fill{position:absolute; left:0; top:0; bottom:0; border-radius:0 4px 4px 0; background:currentColor}
+.val{font-variant-numeric:tabular-nums; color:var(--ink); font-weight:500; text-align:right}
+.multi{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:22px}
+@media (max-width:760px){.multi{grid-template-columns:1fr}}
+.multi .bars{grid-template-columns:minmax(0,7.8rem) minmax(0,1fr) 2.4rem}
+.ptitle{font-size:.86rem; font-weight:600; display:flex; align-items:baseline; gap:8px}
+.axisrow{display:grid; grid-template-columns:minmax(0,7.8rem) minmax(0,1fr) 2.4rem; gap:10px; font-size:.7rem; color:var(--muted); font-variant-numeric:tabular-nums}
+.axisrow .ticks{display:flex; justify-content:space-between}
+
+/* dot plot with whiskers */
+.dots{display:grid; grid-template-columns:minmax(0,10rem) minmax(0,1fr) 3rem; gap:8px 12px; align-items:center; font-size:.84rem}
+.dots .grp{grid-column:1/-1; font-family:var(--mono); font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding-top:6px; border-top:1px solid var(--rule)}
+.dots .grp:first-child{border-top:0; padding-top:0}
+.dtrack{height:22px; position:relative; background:linear-gradient(to right, var(--grid) 1px, transparent 1px) 0 0/20% 100%}
+.whisk{position:absolute; top:50%; height:0; border-top:1.5px solid var(--muted)}
+.whisk::before,.whisk::after{content:""; position:absolute; top:-5px; height:9px; border-left:1.5px solid var(--muted)}
+.whisk::before{left:0} .whisk::after{right:0}
+.dot{position:absolute; top:50%; width:13px; height:13px; margin:-6.5px 0 0 -6.5px; border-radius:50%; box-shadow:0 0 0 2px var(--surface)}
+.dot.intact{background:var(--sfout)}
+.dot.placebo{background:var(--surface); border:2.5px solid var(--sfout)}
+.dot.removed{background:var(--ink)}
+.dotaxis{display:grid; grid-template-columns:minmax(0,10rem) minmax(0,1fr) 3rem; gap:12px; font-size:.7rem; color:var(--muted)}
+.dotaxis .ticks{display:flex; justify-content:space-between; font-variant-numeric:tabular-nums}
+
+/* AUC strip */
+.auc{display:grid; grid-template-columns:minmax(0,1fr) 2.6rem; gap:6px 10px; align-items:center; font-size:.8rem}
+.auc .track{height:10px; background:linear-gradient(to right, var(--grid) 1px, transparent 1px) 0 0/20% 100%}
+.auc .fill{background:var(--ink-2)}
+.auc .lab{grid-column:1/-1; color:var(--ink-2); margin-top:4px}
+
+/* mechanism */
+.mech{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px}
+@media (max-width:720px){.mech{grid-template-columns:1fr}}
+.layer{border-top:2px solid var(--ink); padding-top:12px; display:flex; flex-direction:column; gap:8px}
+.layer .tag{font-family:var(--mono); font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+.layer p{font-size:.9rem; color:var(--ink-2)}
+.layer .ev{font-size:.82rem; color:var(--muted); border-left:2px solid var(--rule); padding-left:10px}
+.schem{display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:end}
+@media (max-width:520px){.schem{grid-template-columns:1fr}}
+.schem div{display:flex; flex-direction:column; gap:6px; align-items:center; text-align:center}
+.schem svg{width:100%; max-width:260px; height:auto}
+.schem p{font-size:.84rem; color:var(--ink-2); max-width:32ch}
+.formula{font-family:var(--serif); font-style:italic; font-size:1.15rem; color:var(--ink); text-align:center}
+
+/* lists */
+ul.clean,ol.clean{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:12px}
+ul.clean li{padding-left:18px; position:relative; color:var(--ink-2); max-width:70ch}
+ul.clean li::before{content:""; position:absolute; left:2px; top:.68em; width:6px; height:6px; border-radius:50%; background:var(--muted)}
+ul.clean li b{color:var(--ink); font-weight:600}
+.oq{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px}
+@media (max-width:680px){.oq{grid-template-columns:1fr}}
+.oq article{background:var(--surface); border:1px solid var(--rule); border-radius:10px; padding:16px 18px; display:flex; flex-direction:column; gap:8px}
+.oq h3{font-size:1.02rem}
+.oq p{font-size:.88rem; color:var(--ink-2)}
+.oq .test{font-size:.8rem; color:var(--muted)}
+.oq .test b{font-family:var(--mono); font-weight:500; font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-2); margin-right:6px}
+
+.meta{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:22px; font-size:.85rem; color:var(--ink-2)}
+@media (max-width:620px){.meta{grid-template-columns:1fr}}
+.meta h3{font-size:1rem; margin-bottom:8px}
+.meta dl{display:grid; grid-template-columns:auto 1fr; gap:4px 14px; margin:0}
+.meta dt{color:var(--muted); font-family:var(--mono); font-size:.78rem}
+.meta dd{margin:0}
+.meta ul.clean{gap:7px}
+.meta ul.clean li{font-size:.85rem}
+footer{font-size:.8rem; color:var(--muted); border-top:1px solid var(--rule); padding-top:16px}
+
+#tip{position:fixed; z-index:10; pointer-events:none; background:var(--tip-bg); color:var(--tip-ink); font-size:.78rem; line-height:1.4; padding:7px 10px; border-radius:6px; max-width:240px; font-variant-numeric:tabular-nums; box-shadow:0 4px 18px rgba(0,0,0,.18)}
+#tip b{font-weight:600}
+@media (prefers-reduced-motion: no-preference){ .fill{transition:width .5s ease} }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Exploratory adaptation in random networks · results to date</div>
+  <h1>Why scale-free out-degree helps a blind learner</h1>
+  <p class="lede">A recurrent network learns by random-walking its weights until a scalar readout settles on target. Networks with heavy-tailed out-degree converge where Erdős–Rényi graphs almost never do. A single-hub model captures part of that advantage, and low dimensionality captures another part. Neither is enough on its own. The rest comes from where the leverage sits: a few incoming weights on broadcasting hubs, and hubs that drive other hubs.</p>
+</header>
+
+<section aria-labelledby="s-picture">
+  <h2 id="s-picture">The picture so far</h2>
+  <div class="mech">
+    <div class="layer">
+      <span class="tag">Observability</span>
+      <h3>A quiet readout</h3>
+      <p>Hub-driven activity is low-dimensional, so the readout fluctuates little and can sit inside the tolerance window.</p>
+      <p class="ev">Necessary but not sufficient. Networks pinned to a fixed point are even lower-dimensional and fail.</p>
+    </div>
+    <div class="layer">
+      <span class="tag">Controllability</span>
+      <h3>Leverage on hub inputs</h3>
+      <p>An out-hub has three or four inputs and fans out to dozens of nodes. Each input weight moves a global variable.</p>
+      <p class="ev">The 9 input weights of the top three hubs recover about half the learning gain.</p>
+    </div>
+    <div class="layer">
+      <span class="tag">Hierarchy</span>
+      <h3>Hubs driving hubs</h3>
+      <p>Big broadcasters preferentially receive from other broadcasters, so leverage compounds along the chain.</p>
+      <p class="ev">Rewiring about 1% of edges, the hub-to-hub ones, costs 0.05–0.08 in convergence.</p>
+    </div>
+  </div>
+  <figure aria-label="Out-hub versus in-hub schematic">
+    <div class="schem">
+      <div>
+        <svg viewBox="0 0 240 150" aria-hidden="true" id="schem-out"></svg>
+        <p><b>Out-hub</b> with few inputs and many outputs. A small change in one input weight shifts the hub state and reaches every target.</p>
+      </div>
+      <div>
+        <svg viewBox="0 0 240 150" aria-hidden="true" id="schem-in"></svg>
+        <p><b>In-hub</b> with many inputs and few outputs. It saturates, no single weight moves it, and it reaches only a handful of nodes.</p>
+      </div>
+    </div>
+    <div class="formula">leverage per weight ∝ k<sub>out</sub> / √k<sub>in</sub></div>
+  </figure>
+</section>
+
+<section aria-labelledby="s-start">
+  <h2 id="s-start">Starting point: out-degree decides it</h2>
+  <div class="prose">
+    <p>The original sweep at <span class="num">N = 1500</span> crosses three degree distributions for in- and out-degree. Every ensemble with scale-free <strong>out</strong>-degree converges in about two thirds of trials or more. Scale-free <strong>in</strong>-degree with binomial out-degree converges in 2%. The notebook keys are ordered (out, in) while graph-tool's sampler returns (in, out), and that ordering is now checked, so the rows below really are out-degree.</p>
+  </div>
+  <figure>
+    <div class="fighead"><h3>Convergence fraction by degree distribution</h3><span class="fignum">Fig. 1</span></div>
+    <div class="heat" id="heat"></div>
+    <figcaption>Cell color and large number give the convergence fraction. Small number gives the median participation ratio of activity during learning. N = 1500, 100 trials per cell, from <code>CF_results.txt</code> and <code>PR_results.pickle</code>.</figcaption>
+  </figure>
+</section>
+
+<section aria-labelledby="s-scale">
+  <h2 id="s-scale">Only out-hubs keep working as N grows</h2>
+  <div class="prose">
+    <p>At fixed mean degree 3.5, <span class="k er">Erdős–Rényi</span> convergence falls to zero by <span class="num">N = 480</span>. <span class="k sfout">Scale-free out</span> and a <span class="k hub">single clamped hub</span> stay flat. <span class="k sfin">Scale-free in</span> holds to <span class="num">N = 240</span> and then drops, with its fraction of ordered trials falling from 0.68 to 0.35.</p>
+  </div>
+  <figure>
+    <div class="fighead"><h3>Convergence fraction against network size</h3><span class="fignum">Fig. 2</span></div>
+    <div class="legend">
+      <span style="color:var(--sfout)"><i class="sw"></i><span style="color:var(--ink-2)">Scale-free out</span></span>
+      <span style="color:var(--hub)"><i class="sw"></i><span style="color:var(--ink-2)">One clamped hub</span></span>
+      <span style="color:var(--sfin)"><i class="sw"></i><span style="color:var(--ink-2)">Scale-free in</span></span>
+      <span style="color:var(--er)"><i class="sw dash"></i><span style="color:var(--ink-2)">Erdős–Rényi</span></span>
+    </div>
+    <div class="chart" id="c-scale"></div>
+    <figcaption>Mean degree 3.5, 60 trials per point (standard error about 0.06), t<sub>max</sub> = 300. Clamped hub: one node held at +1 with N(0, 20²) weights to half the bulk.</figcaption>
+  </figure>
+</section>
+
+<section aria-labelledby="s-ridge">
+  <h2 id="s-ridge">A single hub helps only on a ridge</h2>
+  <div class="prose">
+    <p>The lumped hub as first written is alive in only 10–45% of trials, because its self-loop is drawn with probability α and needs weight above one. Forcing the self-loop gives a working hub. Its field quenches chaos more as σ grows, but convergence peaks at intermediate σ and collapses at σ = 40. There the network is ordered 90% of the time, yet the fixed point is pinned so hard that the random walk cannot move the readout.</p>
+  </div>
+  <figure>
+    <div class="fighead"><h3>Order rises monotonically, convergence does not</h3><span class="fignum">Fig. 3</span></div>
+    <div class="legend">
+      <span style="color:var(--hub)"><i class="sw"></i><span style="color:var(--ink-2)">Convergence fraction</span></span>
+      <span style="color:var(--ink-2)"><i class="sw"></i><span>Fraction of trials ordered (Lyapunov exponent &lt; 0)</span></span>
+      <span style="color:var(--er)"><i class="sw dash"></i><span style="color:var(--ink-2)">Erdős–Rényi convergence</span></span>
+    </div>
+    <div class="chart" id="c-ridge"></div>
+    <figcaption>Forced-self-loop hub on an Erdős–Rényi bulk, N = 120, mean degree 7.5, α = 0.5, 40 trials per point. Hub coverage shows the same shape: α = 1 gives 0.15 against 0.28–0.30 at α = 0.25–0.5.</figcaption>
+  </figure>
+</section>
+
+<section aria-labelledby="s-dim">
+  <h2 id="s-dim">Low dimension is necessary, not sufficient</h2>
+  <div class="prose">
+    <p>Participation ratio measured before learning predicts which trials converge, and it keeps predicting within ordered and within chaotic trials. But convergence does not collapse onto it. Adding more clamped hubs drives the participation ratio to one and convergence falls back down. Pooled across all eleven conditions, convergence peaks at a participation ratio between about 1.2 and 2.</p>
+  </div>
+  <figure>
+    <div class="fighead"><h3>Convergence against participation ratio</h3><span class="fignum">Fig. 4</span></div>
+    <div class="legend">
+      <span style="color:var(--sfout)"><i class="sw dot"></i><span style="color:var(--ink-2)">Scale-free out, γ = 2.2–4.0</span></span>
+      <span style="color:var(--hub)"><i class="sw dot"></i><span style="color:var(--ink-2)">1, 2, 4, 8 clamped hubs</span></span>
+      <span style="color:var(--sfin)"><i class="sw dot"></i><span style="color:var(--ink-2)">Scale-free in, γ = 2.2, 2.4</span></span>
+      <span style="color:var(--er)"><i class="sw ring"></i><span style="color:var(--ink-2)">Erdős–Rényi</span></span>
+    </div>
+    <div class="panels">
+      <div class="chart" id="c-pr"></div>
+      <div style="display:flex; flex-direction:column; gap:16px">
+        <div>
+          <div class="subhead">Pooled trials by participation-ratio sextile</div>
+          <div class="chart" id="c-sext"></div>
+        </div>
+        <div>
+          <div class="subhead" style="margin-bottom:6px">How well each signal predicts convergence (AUC)</div>
+          <div class="auc" id="auc"></div>
+        </div>
+      </div>
+    </div>
+    <figcaption>Left and middle: N = 240, mean degree 3.5, 60 trials per condition, participation ratio from a separate no-learning run of the same network, readout and initial state. AUC: N = 240, 80 trials per ensemble pooled over four ensembles; 0.5 is chance.</figcaption>
+  </figure>
+</section>
+
+<section aria-labelledby="s-lev">
+  <h2 id="s-lev">Leverage sits on the input edges of out-hubs</h2>
+  <div class="prose">
+    <p>Restricting learning to subsets of weights separates structure from dimensionality. In <span class="k sfout">scale-free out</span> networks, the 9 input weights of the three biggest broadcasters recover about half of the full learning gain, and removing them from the learnable set costs convergence. The corresponding weights in <span class="k er">Erdős–Rényi</span>, whose biggest broadcaster reaches only about ten nodes, do nothing. In <span class="k sfin">scale-free in</span> networks the hubs are saturated sinks, so neither their 153 inputs nor their 8 outputs help.</p>
+    <p>This is also why the one-hub approximation undershoots. Its learnable weights are the hub's outputs, each moving one node, while the hub state itself stays fixed. The leverage in real scale-free networks is on the hubs' inputs.</p>
+  </div>
+  <figure>
+    <div class="fighead"><h3>Convergence with learning restricted to a weight subset</h3><span class="fignum">Fig. 5</span></div>
+    <div class="multi" id="lev"></div>
+    <figcaption>"Hub" means the three highest out-degree nodes, or the three highest in-degree nodes for scale-free in. Number of learnable weights under each label. N = 240, mean degree 3.5, 60 trials per bar.</figcaption>
+  </figure>
+</section>
+
+<section aria-labelledby="s-hier">
+  <h2 id="s-hier">Hubs driving hubs add a further share</h2>
+  <div class="prose">
+    <p>In a configuration-model graph, a node's inputs are drawn in proportion to out-degree, so the largest broadcasters are fed by other broadcasters. Rewiring only the hub-to-hub edges among the top-k hubs, so each hub receives from a random bulk node instead, lowers convergence against both the intact graph and a placebo that rewires the same number of bulk-to-hub edges. That is about a fifth of the gap to <span class="k er">Erdős–Rényi</span> at 0.10, from roughly 1% of the edges. Without those edges scale-free out still converges at 0.27–0.29, so individual hub leverage carries most of the effect.</p>
+  </div>
+  <figure>
+    <div class="fighead"><h3>Removing hub-to-hub edges</h3><span class="fignum">Fig. 6</span></div>
+    <div class="legend">
+      <span style="color:var(--sfout)"><i class="sw dot"></i><span style="color:var(--ink-2)">Intact</span></span>
+      <span style="color:var(--ink)"><i class="sw dot"></i><span style="color:var(--ink-2)">Hub-to-hub edges rewired</span></span>
+      <span style="color:var(--sfout)"><i class="sw ring"></i><span style="color:var(--ink-2)">Placebo rewiring</span></span>
+    </div>
+    <div class="dots" id="hier"></div>
+    <div class="dotaxis"><span></span><div class="ticks"><span>0.20</span><span>0.25</span><span>0.30</span><span>0.35</span><span>0.40</span><span>0.45</span></div><span></span></div>
+    <figcaption>Scale-free out, N = 240, mean degree 3.5, 240 trials per point. Whiskers show ±1 standard error. About 10 edges are rewired for k = 10 and 27 for k = 20, out of about 840.</figcaption>
+  </figure>
+</section>
+
+<section aria-labelledby="s-side">
+  <h2 id="s-side">Smaller results</h2>
+  <ul class="clean">
+    <li><b>Learning barely moves the weights.</b> Converged solutions sit about 10% of the weight norm from where they started. Growth of the hub-column norm matches the noise integral, 42 measured against 43 predicted.</li>
+    <li><b>A good fixed point often exists at initialization.</b> With learning switched off, a clamped hub still converges in 10–18% of trials against 3–5% for Erdős–Rényi. Learning roughly doubles to triples that.</li>
+    <li><b>The hub column alone is a sufficient search space</b> once its noise is scaled to its weight size. Learning only its 60 weights gives 0.38, the same as learning all 900.</li>
+    <li><b>Converged solutions are not marginal.</b> Their leading Jacobian eigenvalue is about −0.70, more stable than non-converged endpoints, and about 70% survive a weight kick. Some stay weakly chaotic in directions the readout does not see.</li>
+    <li><b>At small N, sparsity is a confound.</b> At N = 120 a sparse Erdős–Rényi graph with the same mean degree as the scale-free ensembles gets most of their advantage. The heavy tail separates only as N grows.</li>
+  </ul>
+</section>
+
+<section aria-labelledby="s-open">
+  <h2 id="s-open">Open questions</h2>
+  <div class="oq">
+    <article>
+      <h3>Does the hierarchy share grow with N?</h3>
+      <p>At N = 240 the hub chain is short. At N = 1500 hubs are larger and chains deeper, and Erdős–Rényi convergence is already zero.</p>
+      <p class="test"><b>Test</b>Repeat the hub-to-hub rewiring with the JAX code at N = 1500.</p>
+    </article>
+    <article>
+      <h3>Is per-weight leverage the right single quantity?</h3>
+      <p>The sensitivity of the settled readout to each weight should be heavy-tailed in scale-free out networks and concentrated on hub and sub-hub input edges. Its size and spread might predict convergence across every ensemble, including the pinned ones where participation ratio fails.</p>
+      <p class="test"><b>Test</b>Compute ∂y*/∂W<sub>ij</sub> at the fixed point and correlate with convergence per trial.</p>
+    </article>
+    <article>
+      <h3>What is the smallest model with all three layers?</h3>
+      <p>A sub-hub driving a hub that drives the bulk, with the hubs' input weights learnable. It should land between the one-hub model and full scale-free out.</p>
+      <p class="test"><b>Test</b>Two dynamic hubs with weaker σ, learning on input edges only.</p>
+    </article>
+    <article>
+      <h3>Do in/out degree correlations matter?</h3>
+      <p>If leverage scales like k<sub>out</sub>/√k<sub>in</sub>, then nodes with many outputs and few inputs are best. Anti-correlated in- and out-degree should help and correlated should hurt, at identical marginals.</p>
+      <p class="test"><b>Test</b>Degree-preserving swaps that tune the in/out correlation of each node.</p>
+    </article>
+    <article>
+      <h3>Can the ridge be predicted?</h3>
+      <p>Convergence peaks between chaos and pinning. Static-input mean-field theory gives a chaos boundary in field strength and gain, and the ridge may sit at a fixed distance from it.</p>
+      <p class="test"><b>Test</b>Map convergence over σ√α and g, overlay the Rajan, Abbott and Sompolinsky 2010 boundary.</p>
+    </article>
+    <article>
+      <h3>Does scale-free in really decay at large N?</h3>
+      <p>The drop at N = 480 rests on 60 trials. It is also the result closest to the original 0.02 for binomial out with scale-free in.</p>
+      <p class="test"><b>Test</b>N = 480 to 1500 with 200 or more trials per point.</p>
+    </article>
+  </div>
+</section>
+
+<section aria-labelledby="s-meta">
+  <h2 id="s-meta">Setup and caveats</h2>
+  <div class="meta">
+    <div>
+      <h3>Model</h3>
+      <dl>
+        <dt>dynamics</dt><dd>ẋ = J tanh(x) − x, Euler step 0.1</dd>
+        <dt>learning</dt><dd>dW = √(M(s)·D·dt) η on existing edges</dd>
+        <dt>mismatch</dt><dd>M(s) = (M₀/2)[1 + tanh((s − ε)/μ)], s = |bᵀx|</dd>
+        <dt>gain</dt><dd>g₀ = 10, weights N(0, g₀²/⟨k⟩)</dd>
+        <dt>constants</dt><dd>D = 10⁻³, ε = 3, μ = 0.01, M₀ = 4</dd>
+        <dt>stopping</dt><dd>M(s) ≤ 0.01 for 50 time units</dd>
+      </dl>
+    </div>
+    <div>
+      <h3>Caveats</h3>
+      <ul class="clean">
+        <li>Most new runs use N = 60–480 and t<sub>max</sub> = 300, against N = 1500 and t<sub>max</sub> = 2000 in the original sweep.</li>
+        <li>40–240 trials per condition, so standard errors run from 0.03 to 0.07.</li>
+        <li>Graphs come from a configuration-model builder, not graph-tool.</li>
+        <li>The γ sweep in Fig. 4 also changes mean degree, from about 6 down to 1.5.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>Code in <code>experiments/hub_mechanism.py</code> and <code>experiments/pr_figure.py</code>; per-run logs and JSON in <code>experiments/results/</code>; running notes in <code>experiments/NOTES.md</code>. Branch <code>claude/ml-convergence-structure-qblo0c</code>.</footer>
+
+</div>
+<div id="tip" hidden></div>
+
+<script>
+(function(){
+const NS='http://www.w3.org/2000/svg';
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function el(tag,attrs,parent,text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;if(parent)parent.appendChild(e);return e;}
+const f2=v=>v.toFixed(2);
+
+/* tooltip */
+const tip=document.getElementById('tip');
+function showTip(html,x,y){tip.innerHTML=html;tip.hidden=false;const r=tip.getBoundingClientRect();let L=x+14,T=y+14;if(L+r.width>innerWidth-8)L=x-r.width-14;if(T+r.height>innerHeight-8)T=y-r.height-14;tip.style.left=Math.max(8,L)+'px';tip.style.top=Math.max(8,T)+'px';}
+function hideTip(){tip.hidden=true;}
+function bindTip(node,html){
+  node.setAttribute('tabindex','0');
+  node.addEventListener('pointerenter',e=>showTip(html,e.clientX,e.clientY));
+  node.addEventListener('pointermove',e=>showTip(html,e.clientX,e.clientY));
+  node.addEventListener('pointerleave',hideTip);
+  node.addEventListener('focus',()=>{const r=node.getBoundingClientRect();showTip(html,r.right,r.top);});
+  node.addEventListener('blur',hideTip);
+}
+function responsive(host,draw){let w=0;const run=()=>{const W=host.clientWidth;if(W&&W!==w){w=W;host.innerHTML='';draw(W);}};run();new ResizeObserver(run).observe(host);}
+
+/* schematic */
+function schematic(id,nIn,nOut,color){
+  const s=document.getElementById(id); const cx=120, cy=75;
+  const ink=css('--muted');
+  const src=[],dst=[];
+  for(let i=0;i<nIn;i++){const t=(i+.5)/nIn;src.push([22,14+t*122]);}
+  for(let i=0;i<nOut;i++){const t=(i+.5)/nOut;dst.push([218,14+t*122]);}
+  src.forEach(p=>el('line',{x1:p[0],y1:p[1],x2:cx,y2:cy,stroke:ink,'stroke-width':1.2,'stroke-opacity':.7},s));
+  dst.forEach(p=>el('line',{x1:cx,y1:cy,x2:p[0],y2:p[1],stroke:color,'stroke-width':1.4,'stroke-opacity':.85},s));
+  src.forEach(p=>el('circle',{cx:p[0],cy:p[1],r:4,fill:css('--surface'),stroke:ink,'stroke-width':1.5},s));
+  dst.forEach(p=>el('circle',{cx:p[0],cy:p[1],r:4,fill:css('--surface'),stroke:color,'stroke-width':1.5},s));
+  el('circle',{cx,cy,r:13,fill:color,stroke:css('--surface'),'stroke-width':3},s);
+}
+function drawSchem(){['schem-out','schem-in'].forEach(id=>document.getElementById(id).innerHTML='');schematic('schem-out',3,14,css('--sfout'));schematic('schem-in',14,3,css('--sfin'));}
+
+/* Fig 1 heatmap */
+function heatmap(){
+  const host=document.getElementById('heat');
+  const D=['sf','binom','exp'], name={sf:'scale-free',binom:'binomial',exp:'exponential'};
+  const CF={'sf|sf':.65,'sf|binom':.64,'sf|exp':.85,'binom|sf':.02,'binom|binom':0,'binom|exp':0,'exp|sf':.30,'exp|binom':.01,'exp|exp':.30};
+  const PR={'sf|sf':4.96,'sf|binom':4.42,'sf|exp':4.72,'binom|sf':19.67,'binom|binom':45.97,'binom|exp':31.83,'exp|sf':16.12,'exp|binom':27.05,'exp|exp':17.74};
+  host.innerHTML='';
+  const c=document.createElement('div');c.className='corner';c.innerHTML='out ↓<br>in →';host.appendChild(c);
+  D.forEach(d=>{const h=document.createElement('div');h.className='hl cl';h.textContent=name[d];host.appendChild(h);});
+  D.forEach(o=>{
+    const r=document.createElement('div');r.className='hl rl';r.textContent=name[o];host.appendChild(r);
+    D.forEach(i=>{
+      const k=o+'|'+i, v=CF[k], p=Math.round(8+92*v/0.85);
+      const cell=document.createElement('div');cell.className='cell'+(v>=0.5?' hi':'');
+      cell.style.background=`color-mix(in oklab, var(--seq) ${p}%, var(--surface))`;
+      if(v<0.5) cell.style.border='1px solid var(--rule)';
+      cell.innerHTML=`<b>${f2(v)}</b><small>PR ${PR[k].toFixed(1)}</small>`;
+      bindTip(cell,`<b>out ${name[o]}, in ${name[i]}</b><br>Convergence ${f2(v)}<br>Median PR ${PR[k].toFixed(1)}`);
+      host.appendChild(cell);
+    });
+  });
+}
+
+/* generic line chart */
+function lineChart(host,cfg){
+  responsive(host,W=>{
+    const H=cfg.height||270, narrow=W<460;
+    const m={t:26,r:narrow?(cfg.rN||84):(cfg.r||120),b:44,l:40};
+    const s=el('svg',{width:W,height:H,viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':cfg.aria},host);
+    const lx=Math.log, X=cfg.logX?v=>m.l+(lx(v)-lx(cfg.x0))/(lx(cfg.x1)-lx(cfg.x0))*(W-m.l-m.r):v=>m.l+(v-cfg.x0)/(cfg.x1-cfg.x0)*(W-m.l-m.r);
+    const Y=v=>m.t+(1-(v-cfg.y0)/(cfg.y1-cfg.y0))*(H-m.t-m.b);
+    cfg.yTicks.forEach(t=>{el('line',{x1:m.l,x2:W-m.r,y1:Y(t),y2:Y(t),class:t===cfg.y0?'base':'grid'},s);el('text',{x:m.l-8,y:Y(t)+4,'text-anchor':'end',class:'tick'},s,t.toFixed(1));});
+    cfg.xTicks.forEach(t=>el('text',{x:X(t),y:H-m.b+18,'text-anchor':'middle',class:'tick'},s,String(t)));
+    el('text',{x:(m.l+W-m.r)/2,y:H-8,'text-anchor':'middle',class:'axis'},s,cfg.xLabel);
+    el('text',{x:m.l-8,y:12,'text-anchor':'start',class:'axis'},s,cfg.yLabel);
+    (cfg.refs||[]).forEach(r=>{el('line',{x1:m.l,x2:W-m.r,y1:Y(r.v),y2:Y(r.v),stroke:css(r.color),'stroke-width':1.5,'stroke-dasharray':'5 4'},s);});
+    const labels=[];
+    cfg.series.forEach(se=>{
+      const c=css(se.color);
+      const d=se.v.map((v,i)=>(i?'L':'M')+X(cfg.x[i]).toFixed(1)+','+Y(v).toFixed(1)).join('');
+      el('path',{d,fill:'none',stroke:c,'stroke-width':se.w||2,'stroke-dasharray':se.dash?'6 4':'none','stroke-linejoin':'round','stroke-linecap':'round'},s);
+      se.v.forEach((v,i)=>{
+        if(!se.dash) el('circle',{cx:X(cfg.x[i]),cy:Y(v),r:4,fill:se.hollow?css('--surface'):c,stroke:se.hollow?c:css('--surface'),'stroke-width':2},s);
+        const h=el('circle',{cx:X(cfg.x[i]),cy:Y(v),r:12,class:'hit'},s);
+        bindTip(h,`<b>${se.name}</b><br>${cfg.xName} = ${cfg.x[i]}<br>${se.valName||cfg.valName||'Convergence'} ${f2(v)}`);
+      });
+      labels.push({y:Y(se.v[se.v.length-1]),text:narrow?(se.short||se.name):se.name,color:c});
+    });
+    (cfg.refs||[]).forEach(r=>labels.push({y:Y(r.v),text:narrow?(r.short||r.name):r.name,color:css(r.color)}));
+    labels.sort((a,b)=>a.y-b.y);
+    for(let i=1;i<labels.length;i++) if(labels[i].y-labels[i-1].y<15) labels[i].y=labels[i-1].y+15;
+    labels.forEach(l=>el('text',{x:W-m.r+8,y:l.y+4,class:'dl',style:`fill:${l.color}`},s,l.text));
+  });
+}
+
+/* Fig 4 scatter */
+function scatter(host){
+  const pts=[
+    {g:'er',n:'Erdős–Rényi',pr:5.95,cf:.10},
+    {g:'hub',n:'1 clamped hub',pr:1.60,cf:.32},{g:'hub',n:'2 clamped hubs',pr:1.13,cf:.28},
+    {g:'hub',n:'4 clamped hubs',pr:1.08,cf:.08},{g:'hub',n:'8 clamped hubs',pr:1.05,cf:.18},
+    {g:'sfout',n:'Scale-free out, γ 2.2',pr:2.49,cf:.38},{g:'sfout',n:'Scale-free out, γ 2.4',pr:2.29,cf:.32},
+    {g:'sfout',n:'Scale-free out, γ 3.0',pr:2.83,cf:.27},{g:'sfout',n:'Scale-free out, γ 4.0',pr:2.65,cf:.42},
+    {g:'sfin',n:'Scale-free in, γ 2.2',pr:3.61,cf:.15},{g:'sfin',n:'Scale-free in, γ 2.4',pr:3.79,cf:.22}];
+  responsive(host,W=>{
+    const H=270,m={t:26,r:16,b:44,l:40};
+    const s=el('svg',{width:W,height:H,viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'Convergence fraction against participation ratio for eleven conditions'},host);
+    const x0=1,x1=8,X=v=>m.l+Math.log(v/x0)/Math.log(x1/x0)*(W-m.l-m.r),Y=v=>m.t+(1-v/0.5)*(H-m.t-m.b);
+    [0,.1,.2,.3,.4,.5].forEach(t=>{el('line',{x1:m.l,x2:W-m.r,y1:Y(t),y2:Y(t),class:t===0?'base':'grid'},s);el('text',{x:m.l-8,y:Y(t)+4,'text-anchor':'end',class:'tick'},s,t.toFixed(1));});
+    [1,2,4,8].forEach(t=>el('text',{x:X(t),y:H-m.b+18,'text-anchor':'middle',class:'tick'},s,String(t)));
+    el('text',{x:(m.l+W-m.r)/2,y:H-8,'text-anchor':'middle',class:'axis'},s,'Participation ratio before learning (log scale)');
+    el('text',{x:m.l-8,y:12,class:'axis'},s,'Convergence fraction');
+    pts.forEach(p=>{
+      const c=css('--'+p.g), er=p.g==='er';
+      el('circle',{cx:X(p.pr),cy:Y(p.cf),r:5.5,fill:er?css('--surface'):c,stroke:er?c:css('--surface'),'stroke-width':er?2:2},s);
+      bindTip(el('circle',{cx:X(p.pr),cy:Y(p.cf),r:11,class:'hit'},s),`<b>${p.n}</b><br>PR ${p.pr.toFixed(2)}<br>Convergence ${f2(p.cf)}`);
+    });
+    const lab=(t,x,y,g,anchor)=>el('text',{x,y,'text-anchor':anchor||'start',class:'dl',style:`fill:${css('--'+g)}`},s,t);
+    lab('clamped hubs',X(1.05),Y(.40),'hub');
+    lab('scale-free out',X(2.55),Y(.47),'sfout','middle');
+    lab('scale-free in',X(3.7),Y(.28),'sfin','middle');
+    lab('Erdős–Rényi',X(5.95),Y(.17),'er','middle');
+  });
+}
+
+/* sextile bars */
+function sextiles(host){
+  const B=[['1.00',.20],['1.00–1.15',.28],['1.15–2.1',.45],['2.1–2.8',.24],['2.8–4.3',.18],['4.3–12',.13]];
+  responsive(host,W=>{
+    const H=170,m={t:10,r:6,b:44,l:30};
+    const s=el('svg',{width:W,height:H,viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'Pooled convergence by participation ratio sextile'},host);
+    const Y=v=>m.t+(1-v/0.5)*(H-m.t-m.b), bw=(W-m.l-m.r)/B.length;
+    [0,.25,.5].forEach(t=>{el('line',{x1:m.l,x2:W-m.r,y1:Y(t),y2:Y(t),class:t===0?'base':'grid'},s);el('text',{x:m.l-6,y:Y(t)+4,'text-anchor':'end',class:'tick'},s,t.toFixed(2).replace(/0$/,''));});
+    B.forEach((b,i)=>{
+      const x=m.l+i*bw+2,w=bw-4,y=Y(b[1]),h=Y(0)-y, peak=i===2;
+      el('path',{d:`M${x},${Y(0)}V${y+4}Q${x},${y} ${x+4},${y}H${x+w-4}Q${x+w},${y} ${x+w},${y+4}V${Y(0)}Z`,fill:css(peak?'--ink':'--muted'),'fill-opacity':peak?1:.55},s);
+      el('text',{x:x+w/2,y:y-5,'text-anchor':'middle',class:'tick',style:peak?`fill:${css('--ink')};font-weight:600`:''},s,f2(b[1]));
+      const t=el('text',{x:x+w/2,y:H-m.b+14,'text-anchor':'middle',class:'tick',style:'font-size:9.5px'},s,b[0]);
+      bindTip(el('rect',{x,y:m.t,width:w,height:Y(0)-m.t,class:'hit'},s),`<b>PR ${b[0]}</b><br>Convergence ${f2(b[1])}<br>110 trials`);
+    });
+    el('text',{x:(m.l+W-m.r)/2,y:H-8,'text-anchor':'middle',class:'axis'},s,'PR range, low to high');
+  });
+}
+
+/* AUC */
+function auc(){
+  const A=[['Low Lyapunov exponent',.81],['Low PR, all trials',.76],['Low PR, chaotic trials only',.85],['Low PR, ordered trials only',.70],['Readout overlap with activity',.61]];
+  const host=document.getElementById('auc');
+  A.forEach(a=>{
+    const l=document.createElement('div');l.className='lab';l.textContent=a[0];host.appendChild(l);
+    const t=document.createElement('div');t.className='track';
+    const f=document.createElement('div');f.className='fill';f.style.width=((a[1]-.5)/.5*100)+'%';t.appendChild(f);host.appendChild(t);
+    const v=document.createElement('div');v.className='val';v.textContent=f2(a[1]);host.appendChild(v);
+    bindTip(t,`<b>${a[0]}</b><br>AUC ${f2(a[1])} (scale 0.5 to 1.0)`);
+  });
+}
+
+/* Fig 5 leverage */
+function leverage(){
+  const P=[
+    {g:'sfout',t:'Scale-free out',rows:[['All weights',766,.37],['Hub inputs only',9,.20,1],['All but hub inputs',756,.28],['Hub outputs only',190,.18],['No learning',0,.08]]},
+    {g:'sfin',t:'Scale-free in',rows:[['All weights',748,.25],['Hub inputs only',153,.13,1],['All but hub inputs',598,.27],['Hub outputs only',8,.05],['No learning',0,.07]]},
+    {g:'er',t:'Erdős–Rényi',rows:[['All weights',829,.10],['Hub inputs only',10,.03,1],['All but hub inputs',835,.15],['Hub outputs only',27,.03],['No learning',0,.05]]}];
+  const host=document.getElementById('lev');
+  P.forEach(p=>{
+    const col=document.createElement('div');col.style.cssText='display:flex;flex-direction:column;gap:10px';
+    col.innerHTML=`<div class="ptitle"><span class="k ${p.g}">${p.t}</span></div>`;
+    const b=document.createElement('div');b.className='bars';
+    p.rows.forEach(r=>{
+      b.insertAdjacentHTML('beforeend',`<div class="lab${r[3]?' em':''}">${r[0]}<br><small>${r[1]} weights</small></div>`);
+      const t=document.createElement('div');t.className='track';t.style.color=`var(--${p.g})`;
+      t.innerHTML=`<div class="fill" style="width:${r[2]/0.4*100}%;${p.g==='er'?'opacity:.75':''}"></div>`;
+      b.appendChild(t);
+      b.insertAdjacentHTML('beforeend',`<div class="val">${f2(r[2])}</div>`);
+      bindTip(t,`<b>${p.t}: ${r[0]}</b><br>${r[1]} learnable weights<br>Convergence ${f2(r[2])}`);
+    });
+    col.appendChild(b);
+    col.insertAdjacentHTML('beforeend','<div class="axisrow"><span></span><div class="ticks"><span>0</span><span>0.1</span><span>0.2</span><span>0.3</span><span>0.4</span></div><span></span></div>');
+    host.appendChild(col);
+  });
+}
+
+/* Fig 6 hierarchy */
+function hierarchy(){
+  const n=240, lo=.20, hi=.45, pos=v=>(v-lo)/(hi-lo)*100;
+  const G=[['Top 10 hubs, about 10 edges',[['Intact','intact',.33],['Hub-to-hub rewired','removed',.27],['Placebo','placebo',.35]]],
+           ['Top 20 hubs, about 27 edges',[['Intact','intact',.34],['Hub-to-hub rewired','removed',.29],['Placebo','placebo',.33]]]];
+  const host=document.getElementById('hier');
+  G.forEach(g=>{
+    host.insertAdjacentHTML('beforeend',`<div class="grp">${g[0]}</div>`);
+    g[1].forEach(r=>{
+      const se=Math.sqrt(r[2]*(1-r[2])/n);
+      host.insertAdjacentHTML('beforeend',`<div class="lab" style="color:var(--ink-2)${r[1]==='removed'?';font-weight:600;color:var(--ink)':''}">${r[0]}</div>`);
+      const t=document.createElement('div');t.className='dtrack';
+      t.innerHTML=`<div class="whisk" style="left:${pos(r[2]-se)}%;width:${pos(r[2]+se)-pos(r[2]-se)}%"></div><div class="dot ${r[1]}" style="left:${pos(r[2])}%"></div>`;
+      host.appendChild(t);
+      host.insertAdjacentHTML('beforeend',`<div class="val">${f2(r[2])}</div>`);
+      bindTip(t,`<b>${g[0].split(',')[0]}: ${r[0]}</b><br>Convergence ${f2(r[2])} ± ${f2(se)}<br>${n} trials`);
+    });
+  });
+}
+
+function charts(){
+  drawSchem();
+  lineChart(document.getElementById('c-scale'),{
+    aria:'Convergence fraction against network size for four ensembles',
+    x:[60,120,240,480],x0:60,x1:480,logX:true,xTicks:[60,120,240,480],xName:'N',xLabel:'Network size N (log scale)',
+    y0:0,y1:.5,yTicks:[0,.1,.2,.3,.4,.5],yLabel:'Convergence fraction',r:124,rN:92,
+    series:[
+      {name:'Erdős–Rényi',short:'ER',color:'--er',dash:true,v:[.28,.28,.12,0]},
+      {name:'Scale-free in',short:'SF in',color:'--sfin',v:[.20,.27,.32,.13]},
+      {name:'Scale-free out',short:'SF out',color:'--sfout',v:[.37,.40,.30,.33]},
+      {name:'One clamped hub',short:'Hub',color:'--hub',v:[.35,.40,.33,.42]}]});
+  lineChart(document.getElementById('c-ridge'),{
+    aria:'Convergence fraction and ordered fraction against hub weight scale sigma',
+    x:[2,5,10,20,40],x0:2,x1:40,logX:true,xTicks:[2,5,10,20,40],xName:'σ',xLabel:'Hub output weight scale σ (log scale)',
+    y0:0,y1:1,yTicks:[0,.2,.4,.6,.8,1],yLabel:'Fraction of trials',r:118,rN:82,
+    refs:[{v:.07,color:'--er',name:'ER convergence',short:'ER'}],
+    series:[
+      {name:'Ordered',short:'Ordered',color:'--ink-2',hollow:true,w:1.6,v:[.20,.45,.45,.75,.90],valName:'Ordered fraction'},
+      {name:'Convergence',short:'Converge',color:'--hub',v:[.05,.33,.33,.35,.10]}]});
+  scatter(document.getElementById('c-pr'));
+  sextiles(document.getElementById('c-sext'));
+}
+heatmap(); auc(); leverage(); hierarchy(); charts();
+
+/* redraw SVG charts on theme change so colors read from tokens stay correct */
+const rerender=()=>{document.querySelectorAll('.chart').forEach(h=>{h.innerHTML='';});
+  ['c-scale','c-ridge','c-pr','c-sext'].forEach(id=>{const h=document.getElementById(id);const clone=h.cloneNode(false);h.replaceWith(clone);});charts();};
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);}catch(e){}
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+})();
+</script>
